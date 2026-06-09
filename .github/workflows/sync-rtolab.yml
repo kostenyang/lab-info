@@ -1,0 +1,114 @@
+name: Sync rtolab Status
+
+on:
+  schedule:
+    - cron: '0 2 * * *'   # daily 02:00 UTC
+  workflow_dispatch:        # manual trigger any time
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Update status/current.md
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch rtolab recent activity
+        id: fetch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # rtolab is public — no auth needed to read, but GITHUB_TOKEN is fine
+          REPO="kostenyang/rtolab"
+
+          # Last 10 commits
+          COMMITS=$(curl -s \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPO/commits?per_page=10" \
+            | jq -r '.[] | "| `\(.sha[0:7])` | \(.commit.message | split("\n")[0] | .[0:70]) | \(.commit.author.date[0:10]) |"')
+
+          # Open PRs
+          PRS=$(curl -s \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPO/pulls?state=open&per_page=5" \
+            | jq -r 'if length == 0 then "*(none)*" else .[] | "- [#\(.number) \(.title)](https://github.com/kostenyang/rtolab/pull/\(.number))" end')
+
+          # Latest commit detail
+          LATEST_SHA=$(curl -s \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPO/commits?per_page=1" \
+            | jq -r '.[0].sha[0:7]')
+
+          LATEST_MSG=$(curl -s \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPO/commits?per_page=1" \
+            | jq -r '.[0].commit.message | split("\n")[0]')
+
+          NOW=$(date -u '+%Y-%m-%d %H:%M UTC')
+
+          # Write the new auto-sync block
+          cat > /tmp/sync-block.md << SYNCEOF
+          <!-- auto-sync-start -->
+          ## rtolab Recent Activity
+
+          *This section is auto-updated by GitHub Actions. Do not edit manually.*
+
+          **Last synced:** ${NOW} · latest commit \`${LATEST_SHA}\` — ${LATEST_MSG}
+
+          ### Last 10 commits
+
+          | SHA | Message | Date |
+          |-----|---------|------|
+          ${COMMITS}
+
+          ### Open PRs
+
+          ${PRS}
+          <!-- auto-sync-end -->
+          SYNCEOF
+
+          echo "latest_sha=${LATEST_SHA}" >> $GITHUB_OUTPUT
+          echo "now=${NOW}" >> $GITHUB_OUTPUT
+
+      - name: Update status/current.md
+        run: |
+          # Replace content between auto-sync markers (inclusive)
+          python3 - << 'PYEOF'
+          import re, pathlib
+
+          status_file = pathlib.Path("status/current.md")
+          current     = status_file.read_text(encoding="utf-8")
+          new_block   = pathlib.Path("/tmp/sync-block.md").read_text(encoding="utf-8")
+
+          # Strip leading spaces added by heredoc indentation
+          new_block = "\n".join(line.lstrip("          ") for line in new_block.splitlines())
+
+          # Replace everything between (and including) the markers
+          pattern = r"<!-- auto-sync-start -->.*?<!-- auto-sync-end -->"
+          updated = re.sub(pattern, new_block.strip(), current, flags=re.DOTALL)
+
+          status_file.write_text(updated, encoding="utf-8")
+          print("status/current.md updated.")
+          PYEOF
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add status/current.md
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore: sync rtolab status (${{ steps.fetch.outputs.now }})"
+            git push
+            echo "Pushed update."
+          fi

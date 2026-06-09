@@ -44,3 +44,13 @@ Last updated: 2026-06-08
 | Layer 4 | Complete |
 
 **Status**: Reference/template repo. No active bringup in progress.
+
+---
+
+<!-- auto-sync-start -->
+## rtolab Recent Activity
+
+*This section is auto-updated by GitHub Actions. Do not edit manually.*
+
+Last synced: *(pending first run)*
+<!-- auto-sync-end -->
