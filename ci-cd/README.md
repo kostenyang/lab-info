@@ -177,6 +177,8 @@ gh workflow run sync-rtolab.yml --repo kostenyang/lab-info
 | Secret | Repo | Status | Purpose |
 |--------|------|--------|---------|
 | `ANTHROPIC_API_KEY` | rtolab | ⏳ Pending | Claude API for ai-review.yml |
+| `ESXI_ROOT_PW` | rtolab | ✅ Set | Primary ESXi root password (VMware1!VMware1!) |
+| `ESXI_ROOT_PW_PSO` | rtolab | ✅ Set | PSO ESXi root password (VMware1!PSO) — fallback per host |
 | `LAB_INFO_PAT` | rtolab | — | Not needed (sync moved to lab-info side) |
 | `GITHUB_TOKEN` | all | ✅ Auto | Built-in per-workflow token |
 
