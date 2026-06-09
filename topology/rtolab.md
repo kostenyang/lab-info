@@ -172,6 +172,29 @@ Uses Cloud Builder (not VCF Installer). ESXi version: 8.0U3G.
 
 ---
 
+## VCD 10.6.1 (IP range: .60–.61)
+
+**Repo**: https://github.com/kostenyang/vcloud-director — deploy scripts at `rtolab/`
+**Connects to**: VCF 5.2.1 inner vCenter (kosten-vcf521-vc.rtolab.local @ 192.168.114.56)
+
+| Component | FQDN | IP | Role |
+|-----------|------|----|------|
+| VCD Appliance | kosten-vcd.rtolab.local | 192.168.114.60 | VCD 10.6.1; UI https://kosten-vcd.rtolab.local/ui |
+| NFS Server | kosten-vcd-nfs.rtolab.local | 192.168.114.61 | Ubuntu 20.04; NFS transfer storage |
+
+**NFS export**: `192.168.114.61:/exports/vcd-transfer`
+**VCD transfer mount**: `/opt/vmware/vcloud-director/data/transfer`
+
+### Artifacts
+
+| File | Path on E:\ |
+|------|-------------|
+| VCD OVA | `E:\VCD\VMware_Cloud_Director-10.6.1.11883-25088252_OVF10.ova` |
+| NFS VM OVA | `E:\ubuntu-2004-cloud.ova` |
+| Deploy scripts | `E:\VCD\01-Deploy-NfsVm.ps1` … `05-Connect-Vcf521.ps1` |
+
+---
+
 ## Credentials
 
 Actual secrets: `rtolab/inventory/secrets/lab.yaml` (sops+age encrypted)

@@ -1,6 +1,6 @@
 # Lab Status — Current
 
-Last updated: 2026-06-08
+Last updated: 2026-06-09
 
 ---
 
@@ -15,11 +15,13 @@ Last updated: 2026-06-08
 | Layer 3 (post-bringup) | In progress | Runbooks written; VCFA deployed; VKS bootstrap WIP |
 | Layer 4 (day-2) | Complete | Batch ESXi upgrade 9.0→9.1 implemented |
 | Layer 5 (VKS) | Planned | IP reservations done; scripts scaffolded |
+| VCD 10.6.1 | Deploying | DNS done; NFS VM + OVA deploy pending; will connect to VCF 5.2.1 |
 
 **VCF 9.1** (primary): bringup completed 2026-06-07 (SDDC `a0ca66a4`)
 - Post-bringup target: test VCF 9.1 on esxi-qct-4 and esxi-qct-6
 **VCF 9.0**: running (reference baseline)
-**VCF 5.2.1**: running (upgrade path source)
+**VCF 5.2.1**: rebuilding — previous bringup hit shared `/system/uuid` vSAN partition failure; wipe+rebuild in progress
+**VCD 10.6.1**: deploying — DNS records added (2026-06-09); NFS VM + appliance deploy pending
 
 ### Known issues
 
