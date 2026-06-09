@@ -141,6 +141,37 @@ gh workflow run sync-rtolab.yml --repo kostenyang/lab-info
 
 ---
 
+### rtolab — [`dry-run.yml`](https://github.com/kostenyang/rtolab/blob/main/.github/workflows/dry-run.yml)
+
+| | |
+|-|-|
+| **Trigger** | PR to main touching `layer1-nested/` `layer2-bringup/` `inventory/` + `workflow_dispatch` |
+| **Runner** | `win-labhost` (self-hosted) — needs PowerCLI + lab network |
+| **Script** | [`.github/scripts/Invoke-DryRun.ps1`](https://github.com/kostenyang/rtolab/blob/main/.github/scripts/Invoke-DryRun.ps1) |
+| **Secret needed** | `ESXI_ROOT_PW` (optional — Layer 1 skipped if absent) |
+| **Artifacts** | `bringup-specs-<run_id>` — generated JSON spec (7 days retention) |
+
+**Layer 1 — vSAN/LSOM dry-run**
+- Connects to 4 nested ESXi (192.168.114.14–17) via PowerCLI
+- Reads current advanced settings, compares with desired values
+- `DRY_RUN` mode — no writes made
+- Requires `ESXI_ROOT_PW` secret; skipped with warning if absent
+
+**Layer 2 — Bringup spec generation**
+- Runs `Generate-BringupSpec.ps1 -LabMode -OutputFile <temp>`
+- Validates output JSON is parseable
+- Requires sops age key at `~/.config/sops/age/keys.txt`; skipped with warning if absent
+
+**Graceful skip logic**
+
+| Condition | Layer 1 | Layer 2 |
+|-----------|---------|---------|
+| `ESXI_ROOT_PW` not set | Skip ⚠️ | Run normally |
+| `inventory/secrets/lab.yaml` missing | — | Skip ⚠️ |
+| sops age key missing | — | Skip ⚠️ |
+
+---
+
 ## Secrets reference
 
 | Secret | Repo | Status | Purpose |
@@ -166,9 +197,9 @@ gh workflow run sync-rtolab.yml --repo kostenyang/lab-info
 
 | Step | Status | Description |
 |------|--------|-------------|
-| 1 — Self-hosted runner | ✅ Done | `win-labhost` online, lab network reachable |
+| 1 — Self-hosted runner | ✅ Done | `win-labhost` online, PowerCLI 13.5 installed, lab network reachable |
 | 2 — Lint | ✅ Done | PSScriptAnalyzer + YAML + secret scan on every push |
 | 3 — AI review | ⏳ Key pending | Claude PR review; activate with `ANTHROPIC_API_KEY` |
 | 4 — lab-info sync | ✅ Done | Daily auto-update of status/current.md |
-| 5 — Dry-run | 🔲 Not started | `-WhatIf` validation of Layer 1/2 scripts on self-hosted runner |
+| 5 — Dry-run | ✅ Done | Layer 1 vSAN settings check + Layer 2 bringup spec validation |
 | — vcf9.1-lab | 🔲 Not started | Apply same lint + sync to vcf9.1-lab repo |
