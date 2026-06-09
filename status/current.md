@@ -52,5 +52,24 @@ Last updated: 2026-06-08
 
 *This section is auto-updated by GitHub Actions. Do not edit manually.*
 
-Last synced: *(pending first run)*
+**Last synced:** 2026-06-09 03:12 UTC · latest commit `8661e1e` — ci: add AI code review workflow (manual trigger, Claude Sonnet 4.6)
+
+### Last 10 commits
+
+| SHA | Message | Date |
+|-----|---------|------|
+| `8661e1e` | ci: add AI code review workflow (manual trigger, Claude Sonnet 4.6) | 2026-06-09 |
+| `a79b51c` | ci(pssa): remove PSUseCompatibleSyntax (repo is pwsh 7 only) | 2026-06-08 |
+| `29e4830` | ci(pssa): exclude PlainTextPassword + ConvertToSecureString rules (lab | 2026-06-08 |
+| `1947a11` | ci(lint): warnings informational only, errors block PR | 2026-06-08 |
+| `0a4655c` | ci: add lint workflow (PSScriptAnalyzer + YAML + secret scan) | 2026-06-08 |
+| `01151c7` | ci: add GitHub Actions workflows dir + runner smoke test | 2026-06-08 |
+| `3e0d17f` | docs(layer3): VCF 9.1 + Automation install / creds / password-change / | 2026-06-08 |
+| `da88454` | docs(k8s-access): add VSP bootstrap VM access + inspection (transient  | 2026-06-05 |
+| `f16c285` | docs(k8s-access): find VSP/Automation node IPs dynamically, not hardco | 2026-06-05 |
+| `cf4d02d` | feat(layer3): script to bump VSP Supervisor leader-election timeouts | 2026-06-04 |
+
+### Open PRs
+
+*(none)*
 <!-- auto-sync-end -->
