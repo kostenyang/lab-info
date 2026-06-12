@@ -54,7 +54,7 @@ Last updated: 2026-06-09
 
 *This section is auto-updated by GitHub Actions. Do not edit manually.*
 
-**Last synced:** 2026-06-11 06:58 UTC · latest commit `ad02fe8` — ci(dry-run): support two ESXi credential groups (primary + PSO)
+**Last synced:** 2026-06-12 06:51 UTC · latest commit `ad02fe8` — ci(dry-run): support two ESXi credential groups (primary + PSO)
 
 ### Last 10 commits
 
