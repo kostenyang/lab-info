@@ -1,6 +1,6 @@
 # Lab Status — Current
 
-Last updated: 2026-06-09
+Last updated: 2026-06-10
 
 ---
 
@@ -15,13 +15,14 @@ Last updated: 2026-06-09
 | Layer 3 (post-bringup) | In progress | Runbooks written; VCFA deployed; VKS bootstrap WIP |
 | Layer 4 (day-2) | Complete | Batch ESXi upgrade 9.0→9.1 implemented |
 | Layer 5 (VKS) | Planned | IP reservations done; scripts scaffolded |
-| VCD 10.6.1 | Deploying | DNS done; NFS VM + OVA deploy pending; will connect to VCF 5.2.1 |
+| VCF 5.2.1 (521b) | **Complete** | bringup COMPLETED_WITH_SUCCESS 2026-06-10 (`4245d988`, sddcId `vcf-m02b`) |
+| VCD 10.6.1 | Deploying | DNS done; NFS VM + OVA deploy pending; connects to VCF 5.2.1 (521b) vCenter @ .96 |
 
 **VCF 9.1** (primary): bringup completed 2026-06-07 (SDDC `a0ca66a4`)
 - Post-bringup target: test VCF 9.1 on esxi-qct-4 and esxi-qct-6
 **VCF 9.0**: running (reference baseline)
-**VCF 5.2.1**: rebuilding — previous bringup hit shared `/system/uuid` vSAN partition failure; wipe+rebuild in progress
-**VCD 10.6.1**: deploying — DNS records added (2026-06-09); NFS VM + appliance deploy pending
+**VCF 5.2.1 (521b)**: ✅ bringup completed 2026-06-10 — SDDC Mgr .95 / vCenter .96 / NSX VIP .98 / nodes .97 / ESXi .90–93 (on `trunk521`). Resolved the shared `/system/uuid` vSAN trap via layer1 unique-UUID prep.
+**VCD 10.6.1**: deploying — DNS records added (2026-06-09); NFS VM + appliance deploy pending; will connect to 521b vCenter (.96)
 
 ### Known issues
 
@@ -29,7 +30,7 @@ Last updated: 2026-06-09
 |-------|-----------|-----|
 | vSAN cluster partition | `vmkping` unicast peers; add peer + restart vSAN | `layer4-day2/Troubleshoot-VsanPartition.md` |
 | etcd fsync latency (Supervisor) | FTT=0 policy + wait vSAN resync + disable HA admission | `layer3-postbringup/vcf-operations-automation-deploy-troubleshooting.md` |
-| Outer dvSwitch swsec stale | Toggle trunk PG promisc False→True | `runbooks/golden-ova.md` |
+| Outer dvSwitch swsec stale (任何 PG,大量 port flap 後) | Toggle 該 PG promisc False→True + bounce vmk0 | `runbooks/golden-ova.md` |
 | vmx-14 nested ESXi PSOD at 0.73s | Use vmx-19 OVA | Fixed in current OVA |
 
 ---

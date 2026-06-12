@@ -132,42 +132,46 @@ FQDNs: `kosten-vcf91-esx0{N}.rtolab.local` (mgmt), `kosten-vcf91-esx0{N}-vmot.rt
 
 ---
 
-## VCF 5.2.1 (IP range: .50–.59 / .50–.53 for ESXi)
+## VCF 5.2.1 — "521b" block (deployed 2026-06-10) ✅
 
-Uses Cloud Builder (not VCF Installer). ESXi version: 8.0U3G.
+Uses Cloud Builder (not VCF Installer). ESXi: 8.0 U3b build **24280767** (升自 golden OVA 8.0U3 GA 24022510).
+CB deploy UUID `4245d988-10b6-4165-9790-37ff77dbf3de` · spec sddcId `vcf-m02b` · status **COMPLETED_WITH_SUCCESS** (142/142).
+Nested hosts 在 outer portgroup **`trunk521`**(與共用 `trunk` 隔離)。先前 .50–.53 區塊已重建為此 .90–.93 區塊。
 
 ### Management VMs
 
-| Component | IP |
-|-----------|----|
-| Cloud Builder | 192.168.114.54 |
-| SDDC Manager | 192.168.114.55 |
-| inner vCenter | 192.168.114.56 |
-| NSX Manager node | 192.168.114.57 |
-| NSX Manager VIP | 192.168.114.58 |
+| Component | FQDN | IP |
+|-----------|------|----|
+| Cloud Builder | kosten-vcf521-cb.rtolab.local | 192.168.114.54 |
+| SDDC Manager | kosten-vcf521b-sddc.rtolab.local | 192.168.114.95 |
+| inner vCenter | kosten-vcf521b-vc.rtolab.local | 192.168.114.96 |
+| NSX Manager node | kosten-vcf521b-nsxn1.rtolab.local | 192.168.114.97 |
+| NSX Manager VIP | kosten-vcf521b-nsx.rtolab.local | 192.168.114.98 |
 
 ### Nested ESXi Hosts
 
-| Host | mgmt IP | vMotion IP | vSAN IP |
-|------|---------|-----------|---------|
-| esx01 | 192.168.114.50 | 192.168.115.50 | 192.168.116.50 |
-| esx02 | 192.168.114.51 | 192.168.115.51 | 192.168.116.51 |
-| esx03 | 192.168.114.52 | 192.168.115.52 | 192.168.116.52 |
-| esx04 | 192.168.114.53 | 192.168.115.53 | 192.168.116.53 |
+| Host | VM Name | mgmt IP | vMotion IP | vSAN IP |
+|------|---------|---------|-----------|---------|
+| esx01 | vcf-m02-esx01-521 | 192.168.114.90 | 192.168.115.90 | 192.168.116.90 |
+| esx02 | vcf-m02-esx02-521 | 192.168.114.91 | 192.168.115.91 | 192.168.116.91 |
+| esx03 | vcf-m02-esx03-521 | 192.168.114.92 | 192.168.115.92 | 192.168.116.92 |
+| esx04 | vcf-m02-esx04-521 | 192.168.114.93 | 192.168.115.93 | 192.168.116.93 |
 
-### IP Pools
+FQDNs: `kosten-vcf521b-esx0{N}.rtolab.local`
 
-| Pool | Range |
+### IP Pools / vSAN
+
+| Item | Value |
 |------|-------|
-| NSX TEP | 192.168.117.160–.223 |
+| NSX TEP | 192.168.117.160–.223 (VLAN 117) |
+| vSAN datastore | `vcf-m02-vsan01` |
 
 ### Artifacts
 
 | File | Path |
 |------|------|
-| Nested ESXi OVA (8.0U3G) | `E:\5.2.1\Nested_ESXi8.0u3g_Appliance_Template_v1.ova` |
-| ESXi ISO | `E:\5.2.1\VMware-VMvisor-Installer-8.0U3-24022510.x86_64.iso` |
-| ESXi ISO (datastore) | `[vsanDatastore (1)] iso/esxi-8.0u3-5.2.1.iso` |
+| Nested ESXi OVA (golden 8.0) | `E:\custom-ova\rtolab-nested-esxi8.ova` |
+| ESXi U3b depot (upgrade) | `E:\5.2.1\VMware-ESXi-8.0U3b-24280767-depot.zip` |
 | Cloud Builder OVA | `E:\5.2.1\VMware-Cloud-Builder-5.2.1.0-24307856_OVF10.ova` |
 
 ---
@@ -175,7 +179,7 @@ Uses Cloud Builder (not VCF Installer). ESXi version: 8.0U3G.
 ## VCD 10.6.1 (IP range: .60–.61)
 
 **Repo**: https://github.com/kostenyang/vcloud-director — deploy scripts at `rtolab/`
-**Connects to**: VCF 5.2.1 inner vCenter (kosten-vcf521-vc.rtolab.local @ 192.168.114.56)
+**Connects to**: VCF 5.2.1 (521b) inner vCenter (kosten-vcf521b-vc.rtolab.local @ 192.168.114.96)
 
 | Component | FQDN | IP | Role |
 |-----------|------|----|------|
