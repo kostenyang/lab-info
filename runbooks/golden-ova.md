@@ -113,7 +113,7 @@ management VMs (vc/sddc/nsx/ops/lic/vspp/VCFA) land on FTT=0 automatically.
 all-flash vSAN, capacity/IO over redundancy; FTT=0 also mitigates the Supervisor etcd
 fsync-latency issue.
 
-## Proven full-rebuild sequence (validated 2026-06-12)
+## Proven full-rebuild sequence (validated 2026-06-12, FULL 9.1+VCFA confirmed 2026-06-17)
 
 1. `_redeploy_nested.ps1` — wipe + redeploy 4 clones from golden OVA (thin, NestedHV)
 2. Flush trunk PG swsec
@@ -122,6 +122,23 @@ fsync-latency issue.
 5. Per-host SSH: uuid sed → esx01 hostname → generate-certificates → auto-backup → reboot
 6. Repopulate DRS VM groups + vMotion to 2/2 (esx01/02→.4, esx03/04→.6)
 7. Layer 1 settings via SSH (six values above)
-8. IP sweep `.2–.99` — every spec IP must be free (esp. VCFA pool .78–.83)
-9. Installer: confirm no `IN_PROGRESS` orphan → `POST /v1/sddcs/validations` →
-   expect `COMPLETED/WARNING` (nested-lab warnings OK) → `POST /v1/sddcs`
+8. NTP: set `192.168.114.200` + start ntpd on all 4. ESXi SSH (TSM-SSH) auto-stops after
+   idle / after validation probes — if SSH refuses (`port 22 connection refused` while 443
+   is up = host healthy, service just stopped), configure NTP via **PowerCLI EsxCli over 443**
+   instead (`Add-VMHostNtpServer` + `Set-VMHostService -Policy On` + `Start-VMHostService`).
+9. IP sweep `.2–.99` — every spec IP must be free (esp. VCFA pool .78–.83)
+10. Installer: confirm no `IN_PROGRESS` orphan → `POST /v1/sddcs/validations` →
+    expect `COMPLETED/WARNING` (nested-lab warnings OK: ntpd, boot disk <32GB, cores<110,
+    storage <required — all WARNING, no FAILED) → `POST /v1/sddcs`
+
+**2026-06-17 result**: this exact sequence completed a full VCF 9.1 + VCFA bringup
+**312/312, 0 failures** (sddcId `vcf-m02`, id `50f522f6`). sddcId `vcf-m02` did **not**
+collide with `ALREADY_EXISTS` despite 25 prior records in the installer DB.
+
+**OSDATA UUID is NOT a blocker (myth busted)**: all 4 clones share an identical OSDATA
+volume UUID (`OSDATA-…-005056a58fa9`, the master's baked MAC) — but the VCFA/VSP
+multi-node vSAN ESA stage passed anyway with no `vmdk not found` cross-host clone failure.
+Unique `/system/uuid` (f01–f04) is sufficient for multi-node nested vSAN; the OSDATA volume
+UUID is cosmetic (VMFS-L system partition), not the vSAN node identity. Earlier notes
+claiming "OSDATA deadlock → must use kickstart ISO" are wrong — do not abandon the
+OVA-clone path on that basis.
