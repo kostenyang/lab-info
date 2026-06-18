@@ -59,12 +59,14 @@ Last updated: 2026-06-12
 
 *This section is auto-updated by GitHub Actions. Do not edit manually.*
 
-**Last synced:** 2026-06-17 07:22 UTC · latest commit `ad02fe8` — ci(dry-run): support two ESXi credential groups (primary + PSO)
+**Last synced:** 2026-06-18 07:01 UTC · latest commit `cdf3baa` — layer5-vks/README: correct IP plan to actual deployed values
 
 ### Last 10 commits
 
 | SHA | Message | Date |
 |-----|---------|------|
+| `cdf3baa` | layer5-vks/README: correct IP plan to actual deployed values | 2026-06-18 |
+| `d42999f` | layer5-vks: add UI walkthrough + screenshots, commit Step0-4 scripts | 2026-06-18 |
 | `ad02fe8` | ci(dry-run): support two ESXi credential groups (primary + PSO) | 2026-06-09 |
 | `87ccacb` | ci(dry-run): skip Layer 2 gracefully when secrets/age key absent in CI | 2026-06-09 |
 | `6613c2f` | ci(dry-run): Layer 1 vSAN dry-run + Layer 2 spec validation | 2026-06-09 |
@@ -73,8 +75,6 @@ Last updated: 2026-06-12
 | `29e4830` | ci(pssa): exclude PlainTextPassword + ConvertToSecureString rules (lab | 2026-06-08 |
 | `1947a11` | ci(lint): warnings informational only, errors block PR | 2026-06-08 |
 | `0a4655c` | ci: add lint workflow (PSScriptAnalyzer + YAML + secret scan) | 2026-06-08 |
-| `01151c7` | ci: add GitHub Actions workflows dir + runner smoke test | 2026-06-08 |
-| `3e0d17f` | docs(layer3): VCF 9.1 + Automation install / creds / password-change / | 2026-06-08 |
 
 ### Open PRs
 
