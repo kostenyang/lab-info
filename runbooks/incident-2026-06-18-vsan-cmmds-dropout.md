@@ -116,6 +116,26 @@ vCenter 從硬斷恢復後 **API 起來但一大票服務 STOPPED**(`/api/vcente
 
 > 教訓:**nested 管理叢集硬斷恢復後,先 `service-control --start --all` 把 vCenter 服務補齊**,否則 host 重連、licensing、wcp/VKS 全卡。
 
+## Update 6 — 2026-06-18 ✅ VSP/VCFA 恢復(leader-election lease 補丁)
+
+VSP 是 **VCFA 內嵌 supervisor,非 vCenter WCP 管理**(`decryptK8Pwd.py` 查無、namespace-management API 列不出)。存取:**SSH `vmware-system-user`/`VMware1!VMware1!` 到 CP 節點 `192.168.114.20`(=vspp-rrxwt,control-plane,持 .19 VIP)**,`echo pw|sudo -S kubectl --kubeconfig=/etc/kubernetes/admin.conf`。
+
+**誤判**:一開始以為 VSP/VCFA 全掛,其實是**測錯埠/IP**——supervisor K8s API 在 **`.19:6443`**(非 443);VCFA platform 對外是 **vmsp-gateway LoadBalancer 的 `.43/.44/.45/.86`**(非 .87/.77)。這些其實都通。
+
+**真病灶 = 三個 leader-election 元件 crashloop**(nested vSAN etcd fsync 延遲掉 lease):kube-controller-manager(35 restarts)、kube-scheduler(41)、**kube-vip(35 → .19 VIP flap)**,連帶 vsphere-csi-controller 576 restarts。
+
+**修法(已套用 .20)**：
+1. `pwsh rtolab/scripts/Fix-VspLeaderElection.ps1 -ControlPlaneIp 192.168.114.20` → cm/scheduler 加 `--leader-elect-lease-duration=120s / renew-deadline=100s / retry-period=20s`。
+2. kube-vip:`sed -i '/vip_leaseduration/{n;s/"15"/"120"/};/vip_renewdeadline/{n;s/"10"/"100"/};/vip_retryperiod/{n;s/"2"/"20"/}' /etc/kubernetes/manifests/kube-vip.yaml`。
+→ 三者 restarts 歸 0、穩定;CSI 止血(最後重啟 71 分前);176 pod 中 172 Running;VCFA gateway `.43-.45/.86:443` 通;sddc-lcm postgres db-2 replica 自癒 reinit 成功。
+
+> ⚠️ **補丁在 CP 節點 static manifest**,若 supervisor 重建/CP 節點 reprovision 會遺失,需重套(bringup 前先套可免整條鏈)。
+
+---
+
+# ✅ 本 incident 全鏈復原完成(2026-06-18)
+vSAN CMMDS dropout(.14/.17)→ vCenter/SDDC 掛 → 救回(.14 reboot、.17 detach-diskless-swsec-reattach-mount)→ 0 資料遺失 → vCenter 服務補齊(service-control --start --all)→ 四 host 全 Connected → VSP supervisor leader-election 補丁 → VSP/VCFA 恢復服務。**端到端零資料遺失。**
+
 ## 關鍵參數
 
 - nested ESXi root / `VMware1!VMware1!`(SSH 預設關,需 PowerCLI 開 TSM-SSH;443 一直可用)
