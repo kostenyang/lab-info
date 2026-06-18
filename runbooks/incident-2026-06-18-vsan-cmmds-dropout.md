@@ -70,6 +70,22 @@ vSAN 叢集成員齊全、資料碟健康在線,但 .14/.17 的 disk group 卡�
 5. **需要使用者提供 outer vCenter 172.16.10.100 帳密**,以便必要時從外層檢查/處理。
 6. 回到原任務:VKS/VCFA 啟用 + 全自動 cut 圖(Chrome MCP 截 → session JSONL 用 extract_screenshots.py 解)。
 
+## Update 3 — 2026-06-18 復原進展(reboot 法:.14 成功 / .17 卡住)
+
+- **`.14` ✅ reboot 後復原**:disk InCMMDS=true、datastore free 1133→1640GB。(reboot 用 SSH `reboot -f`;回來後 SSH 服務不會自動起,用 PowerCLI EsxCli/443 查即可。)
+- **`.14` 一回來,vc/sddc 物件就部分恢復**:`.15` 上 `kosten-vcf91-sddc` 變 connected 且**自動 poweredOn**;`kosten-vcf91-vc` 變 connected 但仍 poweredOff。`lic`/`vna01`/`vspp-5mfbv` 仍 inaccessible(元件在 .17)。
+- **vc 開機失敗**:`Start-VM kosten-vcf91-vc` → `kosten-vcf91-vc.vmx was not found ... Device or resource busy`。→ vc 的 home namespace 物件**有元件在 .17**(.17 未回 → 物件不完整 → .vmx 讀不到),可能還有殘留 lock。
+- **`.17` ❌ reboot 後 vSAN 啟用卡死**:console 卡在 **「vsan loaded successfully / activating: vsan」進度條滿、bootTime 不變 ~25 分鐘**;ping 通、443/hostd 起不來。`reboot -f`、outer 硬 reset 都一樣卡在 vSAN 啟用(它在收編那個 CMMDS-out 的 disk group 時 hang)。
+  - 注意:`reboot -f` 後 .17 關機很慢(ping 撐 ~8.5 分);outer console 截圖(`createScreenshot`)是看 nested ESXi 開機畫面的可靠方法。
+
+### 風險與選項(FTT=0)
+vc 及 lic/vna 部分元件在 .17;若 .17 disk group 最終救不回 → 這些單副本元件**遺失**(這正是要把 vc 改 FTT=1 的理由,但得先有 vCenter)。
+
+- **選項 1（等)**:讓 .17 繼續跑 vSAN 啟用,或許會 timeout 後放行開機(可能 30+ 分)。
+- **選項 2（救 .17 disk group)**:設法讓 .17 開機時略過 vSAN 自動啟用(boot option / 進 host 後手動處理),再乾淨 re-admit disk group。風險中高。
+- **選項 3（接受局部遺失)**:若 .17 disk group 無法救,vc 等需從 backup/重建;lab FTT=0 本就無冗餘。
+- **outer vCenter**:172.16.10.100 / `administrator@vmwaresso.taiwan` / `381VMware1!admin`(SSO domain = vmwaresso.taiwan)。.14/.17 = `vcf-m02-esx01-91`(outer .4)/`esx04-91`(outer .6);三磁碟都在 `vsanDatastore-RTO`,VM PoweredOn,**底層 VMDK 沒丟**——所以理論上 .17 disk group 資料還在,是 vSAN 軟體層收編卡住。
+
 ## 關鍵參數
 
 - nested ESXi root / `VMware1!VMware1!`(SSH 預設關,需 PowerCLI 開 TSM-SSH;443 一直可用)
