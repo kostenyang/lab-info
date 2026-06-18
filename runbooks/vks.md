@@ -7,6 +7,21 @@
 - NSX 9.1 lab defaults to DTGW (Distributed Tier-1 Gateway) — no dedicated edge cluster needed for Supervisor networking, but no routing between VPCs without explicit config.
 - VKS scripts live in a separate repo: https://github.com/kostenyang/vcf9.1vks
 
+## Status (2026-06-18)
+
+**目標**：在 rtolab VCF 9.1 (`vcf-m02`, vCenter .11 / NSX VIP .13) 起 user VKS 給 VCFA 用，走 **Path A — DTGW + VNA**（NSX 9.1 預設分散式 TGW，免 edge cluster）。
+
+**本次 run 進度**：
+- ✅ **Step 1 完成** — NSX 建好 external / private-TGW IP blocks + `vcf-m02-vks-vpc-profile`（VPC Connectivity Profile）；Supervisor content library 已建。
+- 🟠 **VNA cluster `vcf-m02-vna-01` 部署中（In Progress）** — appliance VM `vcf-m02-vna01`（@ .106）佈署/開機初始化中，NSX → System → Fabric → VNA Clusters 顯示 In Progress、Node Connectivity 1 Not Available（正常早期階段，約 15–30 分鐘 Up）。
+- ⏳ **Supervisor 尚未啟用** — 待 VNA Up 後接 DVC/TGA → Activate Supervisor。
+
+**端到端已驗證（2026-06-08~09）**：同一 lab 先前已跑通 Supervisor RUNNING → namespace `vks-automation` → VKS guest cluster `vks-auto-01` Available（v1.34.2，CP .135，SNAT via VNA）。完整實機 UI walkthrough 已做成簡報：
+- **`VKS-on-VCF91.pptx`（29 頁）** in repo `vcf9.1vks`，含 Activate Supervisor wizard Step 1–7、NSX IP blocks / VPC profile、Supervisor Configure（mgmt/workload/storage）、Content Libraries、Namespace、VKS cluster running、踩坑修正（Pod CIDR 衝突、MHC timeout）。
+- 截圖來源 / 重建：depotsrv (`rtolab-depotsrv` 172.16.10.50) `/root/vks-ui-screenshots/` → `cd vcf9.1vks; py make_ppt.py`。
+
+> ⚠️ **IP 漂移**：下方「VKS IP reservations」是早期規劃值（External `.100/26`、mgmt GW `.106`…），與**實際部署值不符**。實際 deck/腳本用：External block `192.168.114.128/26`、Private TGW `172.30.0.0/16`、Supervisor Service CIDR `172.29.0.0/16`、VPC Default Private `172.28.0.0/16`、K8s API `.132`、VKS CP `.135`。以 `vcf9.1vks` repo 為準。
+
 ## VKS IP reservations (rtolab VCF 9.1)
 
 See `topology/rtolab.md` → "Layer 5 VKS" section for full IP table.
