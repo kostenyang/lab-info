@@ -86,6 +86,25 @@ vc 及 lic/vna 部分元件在 .17;若 .17 disk group 最終救不回 → 這些
 - **選項 3（接受局部遺失)**:若 .17 disk group 無法救,vc 等需從 backup/重建;lab FTT=0 本就無冗餘。
 - **outer vCenter**:172.16.10.100 / `administrator@vmwaresso.taiwan` / `381VMware1!admin`(SSO domain = vmwaresso.taiwan)。.14/.17 = `vcf-m02-esx01-91`(outer .4)/`esx04-91`(outer .6);三磁碟都在 `vsanDatastore-RTO`,VM PoweredOn,**底層 VMDK 沒丟**——所以理論上 .17 disk group 資料還在,是 vSAN 軟體層收編卡住。
 
+## Update 4 — 2026-06-18 ✅ 核心已復原(vCenter/SDDC/vSAN 全回)
+
+**成功路徑(.17 disk group 救回的關鍵手法):**
+1. `.14` SSH `reboot -f` → 回來後 disk InCMMDS=true(reboot 即收編)。但 `.17` reboot 後 **vSAN 啟用在開機卡死**(disk group 收編 hang)。
+2. **繞過開機 hang**:outer vCenter 把 `.17`(`vcf-m02-esx04-91`)的兩顆 vSAN 磁碟(`_1.vmdk`=100G cache、`_2.vmdk`=700G capacity)**detach(保留檔)→ 開機(只剩開機碟,不卡)→ 進 DCUI**。
+3. **`.17` 開到 DCUI 卻 ping/443 不通 = outer trunk swsec stale**(reboot 後 vmk0 新 MAC)。**解法:outer VDPG `trunk` 的 Promiscuous toggle True→False→True**,立刻通。(整起事件元兇之一)
+4. 開 SSH → 用 **API 把兩顆 vmdk 掛回 NVMe 控制器(key 31000,unit 0/1,operation=add 無 fileOperation)** → `esxcli storage core adapter rescan --all` → cache 自動 InCMMDS=true。
+5. `esxcli vsan storage diskgroup mount -u <dg>`(背景)→ 約 3.5 分 capacity 也 InCMMDS=true。**叢集穩定後 mount 就成功**(之前卡是因 .14 同時 out + 開機期)。
+6. vSAN object health:**120 healthy / 0 inaccessible** → 資料零遺失。sddc/lic/ops/vna01/vspp 全自動 connected+poweredOn。
+7. **vc 仍 inaccessible**:vSAN 物件健康,但 `.vmx` 有**孤兒 exclusive lock**(owner MAC `00:50:56:a5:93:05` 不屬任何現役 vmk0 → 持鎖 host reboot 後 MAC 變了)。**解法:unregister → 重新 register → power on**,孤兒鎖(heartbeat 已死)被破,vc 開機(落在 .14)。
+8. vCenter `.11` / SDDC `.10` 443 起來;vCenter API OK,列出 esx01/02/03 Connected。
+
+**剩餘收尾(follow-up,非阻斷):**
+- ⚠️ `.17` 在 vCenter 顯示 **NotResponding**:reconnect 進到 licensing 失敗(`Cannot complete the license assignment operation`,lic 服務可能還在起)。host 本身健康、vSAN 正常。待 lic 起來後重連。
+- ⚠️ **`.17` 開機脆弱**:磁碟現在掛著,**下次 reboot 會再卡 vSAN 啟用**。長久解:evacuate 後重建 .17 disk group(或待查為何收編會 hang)。
+- vc 有 **.15/.17 殘留孤兒註冊**(inaccessible duplicates),待清。
+- **vc(+SDDC)改 FTT=1**(使用者要求):待 vCenter 全綠 + .17 重連後做。
+- 之後回到原任務:VKS/VCFA 啟用 + 全自動 cut 圖。
+
 ## 關鍵參數
 
 - nested ESXi root / `VMware1!VMware1!`(SSH 預設關,需 PowerCLI 開 TSM-SSH;443 一直可用)
