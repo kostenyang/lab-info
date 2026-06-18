@@ -17,11 +17,13 @@ Last updated: 2026-06-12
 | Layer 5 (VKS) | Planned | IP reservations done; scripts scaffolded |
 | VCF 5.2.1 (521b) | **Complete** | bringup COMPLETED_WITH_SUCCESS 2026-06-10 (`4245d988`, sddcId `vcf-m02b`) |
 | VCD 10.6.1 | Deploying | DNS done; NFS VM + OVA deploy pending; connects to VCF 5.2.1 (521b) vCenter @ .96 |
+| SSP 5.1.2 (vDefend) | Installer up · License Hub loaded | Installer appliance @ **.66** (`kosten-ssp`), redeployed 2026-06-17 (moved off `.55` — collided with stale 521 `kosten-vcf521-sddc` reservation). **License Hub (LICENSE bundle 5.1.2-0.0-25400319, 4.46 GB) uploaded to depot → READY** via depot REST API (`POST /sspi/bundles/remote?type=LICENSE`, server-side pull). depot now has INSTALLER (IN_USE) + LICENSE (READY). **platform stand-up pending** (run wizard · NSX target .13 · node IPs from a 3-way-clean block, NOT .55-.59) |
 
 **VCF 9.1** (primary): **full rebuild in progress 2026-06-12** — task `4e7645c3`, 290/313 subtasks, 0 failed (Telemetry stage; VCFA last)
 - Previous run `cffc2d68` failed at VCFA (307/313): VSP leader-election crashloop stalled it 13h, then `.78` self-conflict from the partial deploy → wiped nested ESXi and rebuilt clean (recipe in `runbooks/golden-ova.md` §Proven full-rebuild sequence)
 - Pre-submit IP sweep confirmed all spec IPs free (VCFA pool .78–.83 included); vSAN FTT=0 via spec-created datastore-default policy
 - This run: VSP cm/scheduler healthy (restarts=0, 3.5h+) — no leader-election recurrence
+**Offline depot** (`rtolab-depotsrv` @ 172.16.10.50, nginx :8888): full 9.1.0.0 INSTALL set + **9.1.0.0100 async patch** (2026-06-05 release: ESX/SDDC/HCX/NSX/vCenter) downloaded + checksum-validated 2026-06-17. vmdk 180 GB, 31 GB free. No DNS record / no 521 conflict (.50 is jumpbox segment). See `runbooks/depot-server.md`.
 **VCF 9.0**: running (reference baseline)
 **VCF 5.2.1 (521b)**: ✅ bringup completed 2026-06-10 — SDDC Mgr .95 / vCenter .96 / NSX VIP .98 / nodes .97 / ESXi .90–93 (on `trunk521`). Resolved the shared `/system/uuid` vSAN trap via layer1 unique-UUID prep.
 **VCD 10.6.1**: deploying — DNS records added (2026-06-09); NFS VM + appliance deploy pending; will connect to 521b vCenter (.96)

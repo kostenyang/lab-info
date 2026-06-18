@@ -17,6 +17,17 @@ Read this before doing any work in either lab repo.
 3. Check `runbooks/` before doing Layer 2 / 3 / 4 operations.
 4. Check memory at `C:\Users\Administrator\.claude\projects\...\memory\` for known traps.
 
+## Allocating a new IP (do this EVERY time, in this order)
+
+Never assign a 192.168.114.x address until it passes **all three** checks. Any single source has blind spots — the union is the only safe gate.
+
+1. **DNS reverse zone first** — dump every PTR and reject the IP if it has *any* record:
+   `Get-DnsServerResourceRecord -ZoneName '114.168.192.in-addr.arpa' -CimSession <cim>` (CIM to .200; from the workgroup host use UPN cred `administrator@rtolab.local`, NetBIOS `rtolab\administrator` is denied). **If DNS has a record → the IP is taken, do not use it**, even if nothing answers ping (reservations are often deployed later).
+2. **lab-info + inventory** — grep `lab-info` and `rtolab/inventory` for the IP (catches VIPs/pools with no DNS: Supervisor .19, edge uplinks .72/.73, automation pool .78–83, VKS .100/26).
+3. **ping** — `Test-Connection -Count 1 -Quiet` (catches live-but-undocumented hosts, e.g. `.62` answers ping with no DNS and no doc entry).
+
+Per-version ranges are reserved as whole blocks: **9.1 = .10–.19, 9.0 = .30–.43, 5.2.1 = .50–.59** (so `.55` is 521 territory — an SSP attempt there collided with the stale `kosten-vcf521-sddc` reservation and had to move to `.66`). When a stale record belongs to another deployment, **don't delete it — pick a different IP**.
+
 ## Key facts that surprise people
 
 - **rtolab runs 3 VCF versions simultaneously** — non-overlapping IPs per version. VCF 9.1 uses .10-.19 range, 9.0 uses .30-.43, 5.2.1 uses .50-.59 (all in 192.168.114.x).
@@ -35,6 +46,7 @@ Read this before doing any work in either lab repo.
 
 - Store actual secrets here — secrets live in `rtolab/inventory/secrets/` (sops encrypted).
 - Hardcode IPs without checking `topology/rtolab.md` — three versions share VLANs.
+- Assign a new IP without the 3-way free-check above — **DNS reverse zone first; a record there means taken**, ping-free is not enough.
 - Run `powershell.exe` — always `pwsh`. PowerShell 5.1 mangles Traditional Chinese strings.
 - Skip bringup timeout tuning — apply `layer2-bringup/timeout-tuning.md` workarounds before submitting.
 - Manually delete VMs / patch specs during stuck bringup — prefer installer native retry/resume first.

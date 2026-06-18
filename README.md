@@ -20,6 +20,7 @@ Single source of truth for two VMware Cloud Foundation lab environments.
 | [runbooks/golden-ova.md](runbooks/golden-ova.md) | Golden OVA clone + fix procedure |
 | [runbooks/bringup.md](runbooks/bringup.md) | VCF Option B full bringup flow |
 | [runbooks/vks.md](runbooks/vks.md) | VKS / Supervisor setup & operations |
+| [runbooks/depot-server.md](runbooks/depot-server.md) | Offline VCF depot (`rtolab-depotsrv` @ .50): download/serve bundles + patches |
 | [status/current.md](status/current.md) | Current lab status & known issues |
 
 ## Quick reference

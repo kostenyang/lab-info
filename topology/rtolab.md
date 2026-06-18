@@ -13,6 +13,9 @@ Three VCF versions coexist with non-overlapping IPs on the same VLAN backbone.
 | Outer vCenter | vc-mgmt.vmware.taiwan | 172.16.10.100 | Hosts all nested ESXi VMs; VDS: selab-dswitch |
 | AD / DNS / NTP | kosten.rtolab.local | 192.168.114.200 | rtolab.local zone authority; Windows Server |
 | Automation host | selab-win2022-jump.rtolab.local | 172.16.10.32 | Windows Server 2022; runs all PowerShell scripts |
+| Offline depot | `rtolab-depotsrv` (no DNS record) | 172.16.10.50 | Ubuntu; nginx `:8888` → `/depot/PROD`; serves VCF bundles to Installer/SDDC Mgr. See [runbooks/depot-server.md](../runbooks/depot-server.md) |
+
+> **Depot server `rtolab-depotsrv` @ 172.16.10.50** sits on the **jumpbox segment** (172.16.10.0/24), has **no DNS A/PTR record** (everything references it by raw IP, e.g. `http://172.16.10.50:8888`), and is **distinct from** `kosten-depot` @ 192.168.114.65 (a separate, currently-down depot on the mgmt segment). The `.50` is a number-only coincidence with the retired 521 `kosten-vcf521-esx01` @ **192.168.114.50** — different /24, no conflict (DNS 3-way confirmed 2026-06-18). VM lives on outer host 172.16.10.3, datastore `esxi-vol3`, folder `kosten-rtolab`.
 
 **Outer vCenter resource pool**: `Kosten`
 **Outer vCenter datastore**: `vsanDatastore-RTO`
@@ -29,6 +32,8 @@ Three VCF versions coexist with non-overlapping IPs on the same VLAN backbone.
 | 115 | 192.168.115.0/24 | 192.168.115.254 | selab-dswitch-pg115 | vMotion |
 | 116 | 192.168.116.0/24 | 192.168.116.254 | selab-dswitch-pg116 | vSAN |
 | 117 | 192.168.117.0/24 | 192.168.117.1 | selab-dswitch-pg117 | NSX TEP (Overlay) |
+
+> **Allocating a new .114 IP:** check **DNS reverse zone first** (`114.168.192.in-addr.arpa` on .200) — *any* PTR there means the IP is reserved, do not use it even if ping is silent. Then grep this file + `inventory`, then ping. See `CLAUDE.md` → "Allocating a new IP". The tables below are NOT exhaustive — DNS is the authority. (e.g. SSP first went to `.55` which was a stale 521 reservation; moved to `.66`.)
 
 ---
 
@@ -196,6 +201,32 @@ FQDNs: `kosten-vcf521b-esx0{N}.rtolab.local`
 | VCD OVA | `E:\VCD\VMware_Cloud_Director-10.6.1.11883-25088252_OVF10.ova` |
 | NFS VM OVA | `E:\ubuntu-2004-cloud.ova` |
 | Deploy scripts | `E:\VCD\01-Deploy-NfsVm.ps1` … `05-Connect-Vcf521.ps1` |
+
+---
+
+## SSP — vDefend Security Services Platform 5.1.2 (IP range: .66)
+
+**Repo scripts**: `rtolab/scripts/Deploy-Ssp.ps1` (deploy) · `rtolab/scripts/Get-VmScreenshot.ps1` (console 擷圖)
+SSP Installer 是單一 appliance (4 vCPU / 6 GB / 396 GB, 1 NIC), 接 mgmt access pg114。
+IP 配 `.66`。**原本配 `.55`,但 `.55` 落在舊 521(非 "b")DNS 保留段 `.50-.58`(`kosten-vcf521-sddc` A/PTR 撞在 `.55`)—— 最初只查了 ping + lab-info,漏查 DNS 反解才中招。改挑 `.66`:DNS 反解全表無記錄 + lab-info/inventory 無引用 + ping 無回應 三方都確認乾淨(注意 `.62` 雖無 DNS/無文件卻 ping 得到,已避開)。
+
+| Component | FQDN | IP | Role |
+|-----------|------|----|------|
+| SSP Installer | kosten-ssp.rtolab.local | 192.168.114.66 | vDefend SSP installer appliance; UI https://kosten-ssp.rtolab.local/ |
+
+VM name `ssp-installer` · RP `Kosten` · datastore `vsanDatastore-RTO` · portgroup `selab-dswitch-pg114`。
+帳號(sysadmin / admin / audit / GRUB)都用 lab default `VMware1!VMware1!`(SSP 要求 min12 + 複雜度,firstboot 會驗)。
+
+### OVF 屬性 (Get-OvfConfiguration 確認;全在 `$cfg.Common.*`,NetworkMapping=`Network_1`)
+
+`vsx_fqdn` · `vsx_ip_0` · `vsx_netmask_0` · `vsx_gateway_0` · `vsx_dns1_0` · `vsx_domain_0` · `vsx_ntp_0` · `vsx_isSSHEnabled` · `vsx_passwd_0`(sysadmin)· `vsx_cli_passwd_0`(admin)· `vsx_cli_audit_passwd_0`(audit)· `vsx_grub_passwd`
+
+### Artifacts
+
+| File | Path on E:\ |
+|------|-------------|
+| SSP Installer OVA | `E:\SSP\VMware-Security-Services-Platform-Installer-5.1.2.0.0.25420504.ova` |
+| License Hub | `E:\SSP\License-Hub-5.1.2.0.0.25400319.tar` |
 
 ---
 
