@@ -105,6 +105,17 @@ vc 及 lic/vna 部分元件在 .17;若 .17 disk group 最終救不回 → 這些
 - **vc(+SDDC)改 FTT=1**(使用者要求):待 vCenter 全綠 + .17 重連後做。
 - 之後回到原任務:VKS/VCFA 啟用 + 全自動 cut 圖。
 
+## Update 5 — 2026-06-18 vCenter 服務沒全起 → .17 重連 & VSP 卡點
+
+vCenter 從硬斷恢復後 **API 起來但一大票服務 STOPPED**(`/api/vcenter/services` 查):vpxd-svcs、trustmanagement、**wcp**、content-library、sps、certificatemanagement… 十幾個沒自動起。
+- **.17 重連卡 license** 的真因:不是 .17,是 vCenter `trustmanagement`/`vpxd-svcs` 沒起 → 授權指派失敗(錯誤訊息誤導成 "License Service unavailable",但 `cis-license` 其實 STARTED)。
+- 修法:vCenter SSH → appliancesh `shell` → `service-control --start --all`(會卡在 sps "Operation not allowed in current service state",但多數服務已起;sps 後來自行 STARTED)。**trustmanagement 一起來,.17 ReconnectHost 立刻成功 → 四台 host 全 Connected。**
+- 剩 6 個非必要服務常態 STOPPED(imagebuilder/liagent/netdumper/rbd/vcha/vmcam),不影響。
+
+**VSP/VCFA 仍待恢復**:wcp/content-library 已起、vCenter 可管理 supervisor,但 **VSP supervisor K8s API `.19` 與 VCFA `.87`/`.77` 服務埠仍未起**(vspp pod VM 綠,但 supervisor 控制平面 etcd/apiserver 未服務)。需等 wcp reconcile 自癒,或走 [[project_vsp_outage_recovery]] 的 VSP 恢復鏈(cm/scheduler/kube-vip lease + CSI 重連,詳 lab-info bringup.md)。
+
+> 教訓:**nested 管理叢集硬斷恢復後,先 `service-control --start --all` 把 vCenter 服務補齊**,否則 host 重連、licensing、wcp/VKS 全卡。
+
 ## 關鍵參數
 
 - nested ESXi root / `VMware1!VMware1!`(SSH 預設關,需 PowerCLI 開 TSM-SSH;443 一直可用)
