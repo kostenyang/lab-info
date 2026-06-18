@@ -45,6 +45,31 @@ VM→host 與狀態(`Get-View VirtualMachine`):
 4. **vCenter 起來後:把 vC(建議連 SDDC)VM 改 FTT=1**(SPBM storage policy / RAID-1),避免再被單台 disk dropout 弄掛。FTT=1 需 ≥3 台貢獻儲存 → 故步驟 1 先把 .14/.17 救回是前提。其餘 VM 維持 FTT=0(lab 標準)。
 5. vCenter 回來後續做原任務:VKS/VCFA 啟用 + 全自動 cut 圖(截圖法:Chrome MCP 截 → 從 session JSONL 用 vcf9.1vks/extract_screenshots.py 解檔)。
 
+## Update 2 — 2026-06-18 checkpoint(SSH 深入後修正)
+
+已在 .14/.17 開 SSH(PowerCLI `Start-VMHostService TSM-SSH`;閒置會自停)。SSH 深入查 .14:
+
+- **資料碟都在、且健康**(修正 Update 1 的「VMDK 遺失」推測):
+  - `eui.a56aad4f...`(100 GB,cache,vmhba1 NVMe)、`eui.9044e998...`(700 GB,capacity)
+  - `esxcli vsan storage list`:Checksum OK=true、Is Mounted=true、On-disk v23,但 **In CMMDS=false**
+  - 兩顆都在 `esxcli storage core device list`,adapter vmhba1 = nvme_pcie
+- **`esxcli vsan storage diskgroup mount -u <uuid>` 前景執行 120s 仍不返回(卡住)**,SSH 背景版(nohup)輪詢 ~7.5 分鐘 InCMMDS 全程 0、log 空 → mount 對此狀態無效/no-op。
+- **vmkernel.log 反覆**(每 ~10s):
+  `PLOG: PLOGProbeDevice: Failed to read the device <mpx.vmhba0:C0:T0:L0:7> : Not found`
+  → 報的是 **10 GB 開機碟(mpx.vmhba0:C0:T0:L0,vmhba0 pvscsi)的 partition 7**,不是資料碟。可能是 vSAN 一直去探一個不存在的開機碟 vSAN 分割 → 卡住 disk group 收編;也可能只是噪音,待確認。
+- **Outer vCenter 172.16.10.100 進不去**:`administrator@vsphere.local` 配 `VMware1!` / `VMware1!VMware1!` 皆「incorrect user name or password」→ **缺 outer 帳密**,無法從外層查 datastore/VMDK。
+
+### 研判
+vSAN 叢集成員齊全、資料碟健康在線,但 .14/.17 的 disk group 卡在 CMMDS 外,`mount` 無法收編(疑與開機碟 partition 7 的 PLOG 探測失敗有關)。比起資料遺失,較像 **vSAN disk-group 收編卡死**,reboot host 重新初始化 vSAN 很可能就收回(資料碟健康,reboot 後應重新 admit)。
+
+### 下一步(未做,擇一,部分屬破壞性需確認)
+1. **(較輕)** `.14/.17` 各跑 `esxcli storage core adapter rescan --all`,再看 InCMMDS / vmkernel PLOG 是否停。
+2. **(推薦,中度)** 依序 **reboot .14 → 等回來確認 InCMMDS=true → reboot .17**(資料碟健康,FTT=0 下逐台 reboot 風險可控;不要兩台同時)。reboot 後 vSAN 通常重新收編 disk group → 物件 accessible。
+3. 物件 accessible 後:power on `kosten-vcf91-sddc`、`kosten-vcf91-vc`(再 vcfa-platform/ops/lic/vna)。
+4. vC 起來 → 把 **vC(+SDDC)改 FTT=1**(需 .14/.17 已回 = 3 台貢獻儲存)。
+5. **需要使用者提供 outer vCenter 172.16.10.100 帳密**,以便必要時從外層檢查/處理。
+6. 回到原任務:VKS/VCFA 啟用 + 全自動 cut 圖(Chrome MCP 截 → session JSONL 用 extract_screenshots.py 解)。
+
 ## 關鍵參數
 
 - nested ESXi root / `VMware1!VMware1!`(SSH 預設關,需 PowerCLI 開 TSM-SSH;443 一直可用)
