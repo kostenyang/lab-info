@@ -59,12 +59,13 @@ Last updated: 2026-06-12
 
 *This section is auto-updated by GitHub Actions. Do not edit manually.*
 
-**Last synced:** 2026-06-23 06:16 UTC · latest commit `cdf3baa` — layer5-vks/README: correct IP plan to actual deployed values
+**Last synced:** 2026-06-24 06:14 UTC · latest commit `fe0bf58` — docs: add 2026-06 recovery runbook (vSAN CMMDS dropout → full-stack recovery → VKS rebuild)
 
 ### Last 10 commits
 
 | SHA | Message | Date |
 |-----|---------|------|
+| `fe0bf58` | docs: add 2026-06 recovery runbook (vSAN CMMDS dropout → full-stack re | 2026-06-23 |
 | `cdf3baa` | layer5-vks/README: correct IP plan to actual deployed values | 2026-06-18 |
 | `d42999f` | layer5-vks: add UI walkthrough + screenshots, commit Step0-4 scripts | 2026-06-18 |
 | `ad02fe8` | ci(dry-run): support two ESXi credential groups (primary + PSO) | 2026-06-09 |
@@ -74,7 +75,6 @@ Last updated: 2026-06-12
 | `a79b51c` | ci(pssa): remove PSUseCompatibleSyntax (repo is pwsh 7 only) | 2026-06-08 |
 | `29e4830` | ci(pssa): exclude PlainTextPassword + ConvertToSecureString rules (lab | 2026-06-08 |
 | `1947a11` | ci(lint): warnings informational only, errors block PR | 2026-06-08 |
-| `0a4655c` | ci: add lint workflow (PSScriptAnalyzer + YAML + secret scan) | 2026-06-08 |
 
 ### Open PRs
 
