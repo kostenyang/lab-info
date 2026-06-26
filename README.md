@@ -14,7 +14,8 @@ Single source of truth for two VMware Cloud Foundation lab environments.
 | Document | Content |
 |----------|---------|
 | [topology/rtolab.md](topology/rtolab.md) | rtolab — all IPs, FQDNs, VLANs, components (3 versions) |
-| [topology/vcf91.md](topology/vcf91.md) | vcf9.1-lab — topology & components |
+| [topology/home-lab.md](topology/home-lab.md) | **home.lab — authoritative VCF 9.1 lab (m01/m02/m03), DNS-verified 2026-06-26** |
+| [topology/vcf91.md](topology/vcf91.md) | vcf9.1-lab — ⚠️ stale, superseded by home-lab.md |
 | [architecture/rtolab.md](architecture/rtolab.md) | rtolab architecture diagram + layer overview |
 | [architecture/vcf91.md](architecture/vcf91.md) | vcf9.1-lab architecture diagram |
 | [runbooks/golden-ova.md](runbooks/golden-ova.md) | Golden OVA clone + fix procedure |

@@ -1,5 +1,9 @@
 # vcf9.1-lab — Architecture
 
+> ⚠️ **STALE — the real lab is the `home.lab` domain with three VCF 9.1
+> instances (m01/m02/m03), not a single `lab.com` instance. See
+> [../topology/home-lab.md](../topology/home-lab.md) (corrected 2026-06-26).**
+
 Single VCF 9.1 version. Reference/template repo — simpler than rtolab.
 
 ```

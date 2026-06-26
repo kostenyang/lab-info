@@ -1,5 +1,12 @@
 # vcf9.1-lab — Topology Reference
 
+> ⚠️ **STALE / INACCURATE — see [home-lab.md](home-lab.md) for the corrected,
+> DNS-verified topology (2026-06-26).** This file described the lab as a single
+> `lab.com` VCF 9.1 instance with `sddc-mgr.lab.com`-style names. The real lab is
+> the **`home.lab`** domain (DNS `KADDNS.home.lab` @ 10.0.0.200) with **three**
+> VCF 9.1 instances (m01/m02/m03) named `vcf-m0{1,2,3}-*.home.lab`. Kept for
+> history only — do not rely on the values below.
+
 **Domain**: `lab.com` | **Repo**: https://github.com/kostenyang/vcf9.1-lab
 
 Single VCF 9.1 version. Simpler than rtolab — reference template only, not actively developed.
