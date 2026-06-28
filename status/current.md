@@ -59,7 +59,7 @@ Last updated: 2026-06-12
 
 *This section is auto-updated by GitHub Actions. Do not edit manually.*
 
-**Last synced:** 2026-06-27 05:59 UTC · latest commit `fe0bf58` — docs: add 2026-06 recovery runbook (vSAN CMMDS dropout → full-stack recovery → VKS rebuild)
+**Last synced:** 2026-06-28 06:33 UTC · latest commit `fe0bf58` — docs: add 2026-06 recovery runbook (vSAN CMMDS dropout → full-stack recovery → VKS rebuild)
 
 ### Last 10 commits
 
