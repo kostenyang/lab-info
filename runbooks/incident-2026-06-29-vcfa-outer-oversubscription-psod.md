@@ -23,6 +23,23 @@ VCFA(VCF Automation)provider 的 **org region-quota 一直失敗、provider port
   ```
 - **注意**:load 高到 ~300+ 時 SSH/kubectl 會直接 timeout(apiserver 餵不動)——這時的 `CreateContainerConfigError`/`ImagePullBackOff`/CrashLoop 都是 overload 下游症狀,**別硬戳**,等 load 降會自癒。
 
+## 除錯流程 SOP(症狀 → 根因 決策樹)
+> VCFA provider 503/時通時斷、region-quota 失敗、pod 一堆 CrashLoop/CreateContainerError 時,**照順序**走,不要先去戳 pod。
+
+1. **量 appliance load**(SSH 進 .80,`uptime`)。
+   - load ≫ 24(本案曾 300~584)→ 是 overload,**往下找根因,別動 pod**。SSH/kubectl 若直接 timeout = apiserver 已被餵不動,更證明 overload。
+2. **看控制平面**(`kubectl get pods -n kube-system | grep -E "etcd|apiserver|kube-vip"`)。
+   - etcd/apiserver restart 數狂跳(本案 9 天 700~900 次)→ 控制平面死亡螺旋,根因在儲存/CPU。
+3. **量磁碟延遲**(`iostat -x 1 2`)。
+   - write `await` ≫ 10ms(本案 122~442ms)→ nested vSAN 太慢 → 根因在 **outer**,跳第 4 步。
+4. **連 outer vCenter 172.16.10.100** 量三件事:
+   - 叢集 CPU 超賣率(總 vCPU ÷ 實體核;本案 4.3x)+ 各 host CPU%(83~100% 即滿)。
+   - nested ESXi VM 的 **CPU ready %**(`Get-Stat cpu.ready.summation`;>5~10% 即搶不到 CPU,本案 33%)。
+   - outer vSAN 容量(排除滿載)+ 預設 policy **FTT**(=1 則寫入翻倍)。
+5. **確診 = outer CPU 超賣 / nested ESXi 餓 CPU** → 套修法:CPU+disk shares High、nested ESXi FTT=0、固定到專用 host(見下節)。load 應快速下降。
+6. **若某台 nested ESXi `guestToolsNotRunning` / inner host `NotResponding`** → PSOD/halt。查該 VM 事件有無 `The CPU has been disabled by the guest operating system` → outer `Restart-VM`(硬 reset)救回,等它 ping→443→inner Connected。
+7. **修完別急著重啟 pod** → load 一降,`CreateContainerConfigError`/`ImagePullBackOff`/CrashLoop 會隨控制平面穩定自癒(kubelet 自動重試)。provider 回 302 = 已癒。
+
 ## 根因診斷(從 outer vCenter 量)
 - `SELAB-Cluster` 6×16=96 實體核,卻開 **409 vCPU = 4.3x**,6 台全 83–100% 滿。三組 lab:`vcf-m02-esx*`、`ESXi9-01~03`、`Sean-ESXi-01~06`。
 - vcf-m02 nested ESXi **CPU ready 高到 33%**(esx04)→ 餵不動 vSAN I/O → appliance iostat 寫延遲 122–442ms(etcd 要 `<10ms`)。
