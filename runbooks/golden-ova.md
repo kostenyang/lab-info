@@ -142,3 +142,43 @@ Unique `/system/uuid` (f01–f04) is sufficient for multi-node nested vSAN; the 
 UUID is cosmetic (VMFS-L system partition), not the vSAN node identity. Earlier notes
 claiming "OSDATA deadlock → must use kickstart ISO" are wrong — do not abandon the
 OVA-clone path on that basis.
+
+## Rebuild traps hit 2026-06-28 (current golden OVA) — READ before next rebuild
+
+After a mgmt-plane loss (10 inaccessible FTT=0 vSAN objects from an outer-vSAN freeze;
+vCenter/SDDC VM-home namespaces gone, unrecoverable → full re-bringup), `_prep_redeployed`
+and the vmk0 handling bit twice. Net lessons:
+
+1. **GuestOps can't persist files on this OVA build.** Inside `StartProgramInGuest`, `esxcli`
+   works but `touch /etc/*`, `/sbin/auto-backup.sh` (sourcing `BootbankFunctions.sh`), and
+   `/etc/init.d/SSH` all return **"Operation not permitted"** (GuestOps sandbox, NOT the host —
+   execInstalledOnly=false, Secure Boot off). So `_prep_redeployed`'s `touch /etc/rtolab-configured`
+   + `auto-backup` silently fail → after the hard power-cycle the host reverts: IP→baked `.14`,
+   `/system/uuid`→shared `…8f:a9`. **Do the persist-critical steps over real SSH**, where root
+   has full perms. GuestOps is fine only for `esxcli` (incl. setting a temporary distinct IP so
+   you can SSH per-host).
+
+2. **vmk0 MAC rule (cost 2 failed bringup retries at `Migrate ESX Host Management vmknic to
+   vSphere Distributed Switch` → `VSPHERE_CONFIGURE_HOST_DVS_FAILED` / `HostCommunication`):**
+   vmk0 MAC must be **unique per host AND ≠ that host's vmnic0 HW MAC** (see
+   `rtolab/layer2-bringup/nested-bringup-fixes.md` #1). The OVA bakes all 4 vmk0 to the same
+   `00:50:56:a5:8f:a9` (collision → only 1 host reachable); rebinding to **vmnic0's HW MAC** is
+   ALSO wrong (vmk0 migrates onto the inner vDS → outer dvSwitch sees the same MAC on the uplink
+   port and the vmk port → MAC learning collapses → host NotResponding → rollback → task fails).
+   **RIGHT: let ESXi auto-generate** — `esxcli network ip interface add -i vmk0 -p 'Management
+   Network'` with NO `--mac-address` → picks a unique `00:50:56:6x:xx:xx` (≠ vmnic0 `a5:xx`).
+
+3. **TSM-SSH auto-stops when idle** (port 22 "Connection refused" while 443 up = host healthy,
+   service stopped). Re-enable via PowerCLI direct-to-host `Start-VMHostService TSM-SSH` (root /
+   lab pw), then SSH in.
+
+4. **Installer-native retry** after `COMPLETED_WITH_FAILURE`: `scripts/_retry_bringup.ps1 -Id
+   <sddc-id>` (PATCH `/v1/sddcs/{id}?skipValidations=true`). Flush trunk-PG swsec right before
+   each retry. The wrapper `Submit-Bringup.ps1` poll loop dies after ~1 h on **JWT expiry** (no
+   token refresh) — harmless, bringup runs server-side; monitor with a poller that re-auths each
+   call (`completionPercent` is null on this build — use `sddcSubTasks` counts instead).
+
+Corrected per-host recovery order that worked: GuestOps set distinct IP → GuestOps re-add vmk0
+with NO mac (auto) + IP → flush swsec → SSH set unique `/system/uuid` + `touch
+/etc/rtolab-configured` + `generate-certificates` + `auto-backup.sh` → graceful `reboot` →
+verify (uuid f0N, vmk0 unique & ≠ vmnic0, vmkping gw) → Layer1 + NTP → validate → submit.
