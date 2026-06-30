@@ -4,8 +4,7 @@
 
 > This is the lab previously (incorrectly) documented as "vcf9.1-lab / `lab.com`,
 > single VCF 9.1". Corrected 2026-06-26 from the authoritative DNS zones on
-> 10.0.0.200 (`home.lab` + `lab.com` AXFR) plus live 443 probes. See
-> [vcf91.md](vcf91.md) for the old (stale) version.
+> 10.0.0.200 (`home.lab` + `lab.com` AXFR) plus live 443 probes.
 >
 > **`home.lab` is the primary AD/DNS zone.** `lab.com` is a secondary zone that
 > only holds the outer vCenter (`labvc.lab.com`). The VCF management names are
@@ -133,7 +132,7 @@ Power state varies (instances are brought up/down as needed).
 
 ---
 
-## Notes / corrections vs the old `vcf91.md`
+## Notes / corrections vs the original mis-documented topology
 
 | Old doc said | Reality (DNS-verified 2026-06-26) |
 |--------------|-----------------------------------|

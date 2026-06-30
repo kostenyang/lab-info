@@ -12,10 +12,18 @@ Read this before doing any work in either lab repo.
 
 ## When starting any lab work
 
-1. Read `topology/<lab>.md` — IPs, FQDNs, components. Never assume an IP.
-2. Read `status/current.md` — what's running, what's broken, current stage.
-3. Check `runbooks/` before doing Layer 2 / 3 / 4 operations.
+0. **Confirm which lab first** — `rtolab` or `home lab`. They have non-overlapping IP
+   spaces; never carry an IP/FQDN/credential across them. (`192.168.114.x`/`172.16.10.x`
+   → rtolab; `10.0.0.x`/`10.0.1.x` → home lab.) See `README.md` for the two-side split.
+1. Read the lab's topology — `topology/rtolab.md` **or** `topology/home-lab.md`
+   (home lab's authoritative doc; the `vcf9.1-lab` repo's own docs are a reference
+   template only). Never assume an IP.
+2. Read `status/current.md` — what's running, what's broken, current stage (rtolab-focused today).
+3. Check `runbooks/` before doing Layer 2 / 3 / 4 operations (mostly written against rtolab — adapt IPs for home lab).
 4. Check memory at `C:\Users\Administrator\.claude\projects\...\memory\` for known traps.
+
+Then go to that lab's **own git repo** (`C:\Users\Administrator\rtolab` or
+`C:\Users\Administrator\vcf9.1-lab`) and read its `README.md` / `SCRIPTS.md` / layer docs.
 
 ## Allocating a new IP (do this EVERY time, in this order)
 
