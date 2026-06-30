@@ -184,7 +184,7 @@ FQDNs: `kosten-vcf521b-esx0{N}.rtolab.local`
 ## VCD 10.6.1 (IP range: .60–.61)
 
 **Repo**: https://github.com/kostenyang/vcloud-director — deploy scripts at `rtolab/`
-**Connects to**: VCF 5.2.1 (521b) inner vCenter (kosten-vcf521b-vc.rtolab.local @ 192.168.114.96)
+**Connects to**: VCF 5.2.1 (521b) inner vCenter (kosten-vcf521b-vc.rtolab.local @ 192.168.114.96) **and** the external `lab.com` environment (Sean, 192.168.113.x — see below)
 
 | Component | FQDN | IP | Role |
 |-----------|------|----|------|
@@ -193,6 +193,27 @@ FQDNs: `kosten-vcf521b-esx0{N}.rtolab.local`
 
 **NFS export**: `192.168.114.61:/exports/vcd-transfer`
 **VCD transfer mount**: `/opt/vmware/vcloud-director/data/transfer`
+
+### Registered providers (vCenter + NSX backing this VCD)
+
+| Provider (VCD name) | FQDN | IP | Creds | Notes |
+|---------------------|------|----|-------|-------|
+| vcf521b-vc | kosten-vcf521b-vc.rtolab.local | 192.168.114.96 | administrator@vsphere.local / VMware1!VMware1! | 521b inner vCenter; full PVDC/tenant chain built on this |
+| vcf521b-nsx | kosten-vcf521b-nsx.rtolab.local | 192.168.114.98 | admin / VMware1!VMware1! | 521b NSX |
+| vcsa-lab-113 | vcsa.lab.com | 192.168.113.10 | administrator@vsphere.local / VMware1! · root / VMware1! | **External — Sean's `lab.com` lab, NOT rtolab IP space.** Added 2026-06-17 |
+| nsx-lab-113 | nsx.lab.com | 192.168.113.41 | admin / 1qaz@WSX3edc | Sean's NSX; `*.lab.com` wildcard cert |
+
+> ESXi in the lab.com set: `esxi-01..04.lab.com` @ 192.168.113.11–14 (root / VMware1!).
+
+### lab.com (192.168.113.x) integration — gotchas (2026-06-17)
+
+`192.168.113.x` / `lab.com` is a **separate external environment** reached from rtolab; it shares nothing with rtolab IPs/DNS. Registering it into VCD hit three traps:
+
+1. **Must register by FQDN, not IP** — VCD strictly validates cert SAN against the URL. Cert SANs are `vcsa.lab.com` / `*.lab.com`; `url=https://<IP>` → task error `Certificate for <IP> doesn't match SAN`.
+2. **No lab.com DNS zone in rtolab** — so resolution is via `/etc/hosts`:
+   - **VCD cell** (`192.168.114.60`, Posh-SSH root/VMware1!VMware1!): added `192.168.113.10 vcsa.lab.com` + `192.168.113.41 nsx.lab.com` — required for the registration call to resolve.
+   - **Jumpbox** (`172.16.10.32`, `C:\Windows\System32\drivers\etc\hosts`): added vcsa/esxi-01..04/nsx `.lab.com`. ⚠️ **Without this, `*.lab.com` resolves to PUBLIC internet IPs** (lab.com is a real registered domain → `76.223.54.146` etc.) — any FQDN-based PowerCLI/browser call would leave the lab. Other hosts need their own hosts entries; there is no shared zone.
+3. **vCenter SSO was down (envoy-sidecar)** — registration failed with "credentials" error but real cause was vcsa's own `POST /api/session` → 500 badGateway. vapi-endpoint stuck `INITIALIZED`, vpxd `AcquireToken` + vapi both got `Connection reset` on `localhost:1080/sso-adminserver`. **`:1080` is `vmware-envoy-sidecar`** (NOT rhttpproxy/stsd — both were healthy). Fix: `service-control --restart vmware-envoy-sidecar` then `vmware-vapi-endpoint`. Certs were all valid (not expiry). See debug-vcf9.1 handbook.
 
 ### Artifacts
 

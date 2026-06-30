@@ -16,7 +16,7 @@ Last updated: 2026-06-28
 | Layer 4 (day-2) | Complete | Batch ESXi upgrade 9.0→9.1 implemented |
 | Layer 5 (VKS) | Planned | IP reservations done; scripts scaffolded |
 | VCF 5.2.1 (521b) | **Complete** | bringup COMPLETED_WITH_SUCCESS 2026-06-10 (`4245d988`, sddcId `vcf-m02b`) |
-| VCD 10.6.1 | Deploying | DNS done; NFS VM + OVA deploy pending; connects to VCF 5.2.1 (521b) vCenter @ .96 |
+| VCD 10.6.1 | **Up + dual-connected** | Appliance @ .60 live; full provider+tenant chain on 521b (edge/T0/pool/extnet/PVDC/VDC/egw, see topology); **also registered Sean's external `lab.com` vCenter (vcsa.lab.com .10) + NSX (nsx.lab.com .41)** 2026-06-17 |
 | SSP 5.1.2 (vDefend) | Installer up · License Hub loaded | Installer appliance @ **.66** (`kosten-ssp`), redeployed 2026-06-17 (moved off `.55` — collided with stale 521 `kosten-vcf521-sddc` reservation). **License Hub (LICENSE bundle 5.1.2-0.0-25400319, 4.46 GB) uploaded to depot → READY** via depot REST API (`POST /sspi/bundles/remote?type=LICENSE`, server-side pull). depot now has INSTALLER (IN_USE) + LICENSE (READY). **platform stand-up pending** (run wizard · NSX target .13 · node IPs from a 3-way-clean block, NOT .55-.59) |
 
 **VCF 9.1** (primary): ✅ **rebuild COMPLETED_WITH_SUCCESS 2026-06-29** — sddc id `e4740530-1865-43f2-9993-245e577d40f4`, sddcId `vcf-m02`. **All 8 milestones green** (vCenter `.11`, SDDC `.10`, vSphere cluster, NSX `.13` [258 DFW groups], VCF Mgmt Platform/VSP, Operations `.75` [20 adapters], Mgmt Services, **VCF Automation `.77`/`.87`**). smoke_test 4/6 (vCenter/SDDC/NSX/Operations ✅; Log Mgmt ops-li not deployed; VCFA needs a UI API token to test). API correspondence test fully runnable (old=521b, new=9.1).
@@ -28,7 +28,7 @@ Last updated: 2026-06-28
 **Offline depot** (`rtolab-depotsrv` @ 172.16.10.50, nginx :8888): full 9.1.0.0 INSTALL set + **9.1.0.0100 async patch** (2026-06-05 release: ESX/SDDC/HCX/NSX/vCenter) downloaded + checksum-validated 2026-06-17. vmdk 180 GB, 31 GB free. No DNS record / no 521 conflict (.50 is jumpbox segment). See `runbooks/depot-server.md`.
 **VCF 9.0**: running (reference baseline)
 **VCF 5.2.1 (521b)**: ✅ bringup completed 2026-06-10 — SDDC Mgr .95 / vCenter .96 / NSX VIP .98 / nodes .97 / ESXi .90–93 (on `trunk521`). Resolved the shared `/system/uuid` vSAN trap via layer1 unique-UUID prep.
-**VCD 10.6.1**: deploying — DNS records added (2026-06-09); NFS VM + appliance deploy pending; will connect to 521b vCenter (.96)
+**VCD 10.6.1**: up @ .60. Full provider+tenant chain built on **521b** (NSX edge en01 + T0 → Geneve pool → external network → NSX-T-backed PVDC → tenant1-vdc → egw-tenant1 + routed network, all REALIZED). **2026-06-17 also attached Sean's external `lab.com` set**: vCenter `vcsa.lab.com` @ 192.168.113.10 + NSX `nsx.lab.com` @ 192.168.113.41 registered (vcf521b left untouched). Three integration traps (FQDN-only cert SAN · `/etc/hosts` on cell+jumpbox since no lab.com zone · vcsa SSO down → restart `vmware-envoy-sidecar`) documented in `topology/rtolab.md`.
 
 ### Known issues
 
