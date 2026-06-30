@@ -42,6 +42,18 @@
   ```
 - **抓 nested ESXi PSOD/掉線**:outer VM `guestToolsNotRunning` + inner host(192.168.114.11)`NotResponding`;VM 事件出現 `The CPU has been disabled by the guest operating system` = PSOD → outer `Restart-VM 'vcf-m02-esxXX-91'`(硬 reset;guest 已 halt,graceful 無效),等它 ping→443→inner Connected。
 
+## A2. nested ESXi PSOD/掉線後,VCFA pod 卡 `CreateContainerError` / `ContainerCreating`(死掛載)
+nested ESXi(host）PSOD 或掉線後,跑在它上面的 CSI 磁碟掛載會變**死掛載**(node 回來後仍 `input/output error`),VCFA 的 kafka/rabbitmq/postgres 等有 PVC 的 pod 會卡住、**不會自癒**(可重試上萬次數小時)。
+- **判斷**:`kubectl describe pod` 看到 `FailedMount ... stat .../csi.vsphere.vmware.com/<hash>/globalmount: input/output error`(關鍵是 **globalmount** = node 層 staging 掛載死掉)。`kubectl get pvc` 通常還是 Bound(底層 vSAN 物件 esx04 回來後已恢復,只是 node 掛載 stale)。
+- **修(外科,免重開整台)**:SSH 進 appliance,掃描所有 csi globalmount,把 `stat` 卡住/IO-error 的 **lazy 強制卸載**,CSI 會自動重 stage 乾淨的:
+  ```bash
+  for m in $(mount | grep csi.vsphere.vmware.com | grep globalmount | awk '{print $3}'); do
+    timeout 5 stat "$m" >/dev/null 2>&1 || { echo "wedged: $m"; echo PW | sudo -S umount -f -l "$m"; }
+  done
+  ```
+  (2026-06-29 esx04 PSOD 後實測:**22 個 globalmount 全 wedge**,清完 kafka/rabbitmq/resource-manager 全部自己 Running,Event Broker 復活 → org/quota 才能建。)
+- 若 pod 已被 `--force --grace-period=0` 刪過仍卡 `ContainerCreating`,清掉 globalmount 後它會自己掛上;`resource-manager` 等下游等 kafka/rabbitmq 起來就自動好,頑固的再 `kubectl delete pod` 踢出 backoff。
+
 ## C. 除錯順序(SOP,症狀→根因)
 1. `uptime` 量 load → ≫24 = overload,別動 pod
 2. 控制平面 restart 數狂跳 → 死亡螺旋(根因在儲存/CPU)
