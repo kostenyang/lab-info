@@ -61,22 +61,22 @@ Last updated: 2026-06-28
 
 *This section is auto-updated by GitHub Actions. Do not edit manually.*
 
-**Last synced:** 2026-06-29 06:59 UTC · latest commit `fe0bf58` — docs: add 2026-06 recovery runbook (vSAN CMMDS dropout → full-stack recovery → VKS rebuild)
+**Last synced:** 2026-06-30 06:21 UTC · latest commit `3fd1c08` — docs(layer5-vks): single-node TINY supervisor for resource-tight nested labs
 
 ### Last 10 commits
 
 | SHA | Message | Date |
 |-----|---------|------|
+| `3fd1c08` | docs(layer5-vks): single-node TINY supervisor for resource-tight neste | 2026-06-30 |
+| `ca8c1eb` | docs(cheatsheet): add PSOD -> wedged CSI globalmount recovery (umount  | 2026-06-30 |
+| `d9dfc9f` | docs: replace VCFA incident writeup with command-focused debug cheatsh | 2026-06-29 |
+| `9890e42` | docs: VCFA outer-oversubscription + nested-ESXi PSOD incident runbook  | 2026-06-29 |
 | `fe0bf58` | docs: add 2026-06 recovery runbook (vSAN CMMDS dropout → full-stack re | 2026-06-23 |
 | `cdf3baa` | layer5-vks/README: correct IP plan to actual deployed values | 2026-06-18 |
 | `d42999f` | layer5-vks: add UI walkthrough + screenshots, commit Step0-4 scripts | 2026-06-18 |
 | `ad02fe8` | ci(dry-run): support two ESXi credential groups (primary + PSO) | 2026-06-09 |
 | `87ccacb` | ci(dry-run): skip Layer 2 gracefully when secrets/age key absent in CI | 2026-06-09 |
 | `6613c2f` | ci(dry-run): Layer 1 vSAN dry-run + Layer 2 spec validation | 2026-06-09 |
-| `8661e1e` | ci: add AI code review workflow (manual trigger, Claude Sonnet 4.6) | 2026-06-09 |
-| `a79b51c` | ci(pssa): remove PSUseCompatibleSyntax (repo is pwsh 7 only) | 2026-06-08 |
-| `29e4830` | ci(pssa): exclude PlainTextPassword + ConvertToSecureString rules (lab | 2026-06-08 |
-| `1947a11` | ci(lint): warnings informational only, errors block PR | 2026-06-08 |
 
 ### Open PRs
 
