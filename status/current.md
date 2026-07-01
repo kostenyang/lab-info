@@ -61,7 +61,7 @@ Last updated: 2026-06-28
 
 *This section is auto-updated by GitHub Actions. Do not edit manually.*
 
-**Last synced:** 2026-06-30 06:21 UTC · latest commit `3fd1c08` — docs(layer5-vks): single-node TINY supervisor for resource-tight nested labs
+**Last synced:** 2026-07-01 06:40 UTC · latest commit `3fd1c08` — docs(layer5-vks): single-node TINY supervisor for resource-tight nested labs
 
 ### Last 10 commits
 
