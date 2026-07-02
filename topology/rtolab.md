@@ -14,6 +14,7 @@ Three VCF versions coexist with non-overlapping IPs on the same VLAN backbone.
 | AD / DNS / NTP | kosten.rtolab.local | 192.168.114.200 | rtolab.local zone authority; Windows Server |
 | Automation host | selab-win2022-jump.rtolab.local | 172.16.10.32 | Windows Server 2022; runs all PowerShell scripts |
 | Offline depot | `rtolab-depotsrv` (no DNS record) | 172.16.10.50 | Ubuntu; nginx `:8888` → `/depot/PROD`; serves VCF bundles to Installer/SDDC Mgr. See [runbooks/depot-server.md](../runbooks/depot-server.md) |
+| SFTP backup | `rtolab-sftp` (no DNS record) | 172.16.10.51 | Ubuntu; SDDC Manager (VCF) backup target; sftp-only chroot user `sddcbackup` → `/backups`. See [runbooks/backup-sftp.md](../runbooks/backup-sftp.md) |
 
 > **Depot server `rtolab-depotsrv` @ 172.16.10.50** sits on the **jumpbox segment** (172.16.10.0/24), has **no DNS A/PTR record** (everything references it by raw IP, e.g. `http://172.16.10.50:8888`), and is **distinct from** `kosten-depot` @ 192.168.114.65 (a separate, currently-down depot on the mgmt segment). The `.50` is a number-only coincidence with the retired 521 `kosten-vcf521-esx01` @ **192.168.114.50** — different /24, no conflict (DNS 3-way confirmed 2026-06-18). VM lives on outer host 172.16.10.3, datastore `esxi-vol3`, folder `kosten-rtolab`.
 
