@@ -48,10 +48,25 @@ Point SDDC Manager → Administration → Backup at (or via the API above):
 
 ## Rebuild
 
+This specific `.51` box:
+
 ```powershell
 pwsh C:\Users\Administrator\rtolab\scripts\_build_sftp_seed.ps1   # → _seed_sftp.iso
 pwsh C:\Users\Administrator\rtolab\scripts\_deploy_sftp_vm.ps1    # deletes stale, redeploys .51
 ```
+
+**Generic template (any lab / any IP)** — `rtolab/scripts/New-VcfSftpBackupServer.ps1` is a
+fully parameterized one-shot (builds seed + deploys + optional verify). Nothing hardcoded:
+
+```powershell
+pwsh .\New-VcfSftpBackupServer.ps1 -IpAddress 172.16.10.51 -Gateway 172.16.10.254 `
+  -DnsServers 192.168.114.200,8.8.8.8 -Hostname rtolab-sftp -VmName rtolab-sftp `
+  -OuterVCenter vc-mgmt.vmware.taiwan -OuterUser administrator@vmwaresso.taiwan `
+  -Datastore esxi-vol3 -PortGroup selab-sswitch-pg-management -Folder rtolab-vcf91 -WaitAndVerify
+```
+
+`-WaitAndVerify` waits for cloud-init then prints the SDDC Manager backup params + RSA
+fingerprint. Defaults: user `sddcbackup`, chroot `/srv/sftp`, `/backups`, 200 GB, 4 GB/2 vCPU.
 
 Wait ~135 s for cloud-init (static IP + user + chroot + sshd restart). Verify with an SFTP login
 as `sddcbackup` and a write into `/backups`.
