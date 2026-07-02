@@ -28,7 +28,12 @@ sshd config (in `/etc/ssh/sshd_config`): `Subsystem sftp internal-sftp` + `Match
 
 ## SDDC Manager backup configuration
 
-Point SDDC Manager → Administration → Backup at:
+**Status: configured + verified 2026-07-02** — `PATCH /v1/system/backup-configuration` (auth
+`administrator@vsphere.local`) → task Successful, `isConfigured=true`; on-demand backup
+(`POST /v1/backups/tasks {"elements":[{"resourceType":"SDDC_MANAGER"}]}`) landed SDDC Mgr
+`.tar.gz`+`.sha256` and NSX `nsx-bkp/` in `/backups`. `backupSchedules` still empty (on-demand only).
+
+Point SDDC Manager → Administration → Backup at (or via the API above):
 
 | Field | Value |
 |-------|-------|
