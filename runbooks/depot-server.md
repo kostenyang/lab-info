@@ -68,20 +68,24 @@ so grow freely when a download set won't fit:
 > so `growpart /dev/sda 1` extends root into trailing free space. If `growpart` says `NOCHANGE`,
 > the partition already fills the vmdk → grow the vmdk first (step 1).
 
-## Current contents (2026-06-18)
+## Current contents (2026-06-25)
 
 Full **9.1.0.0 INSTALL** set (vCenter, NSX, SDDC Mgr, VCFA/VRA, VROPS, Ops Proxy, vIDB, HCX,
-License, Salt, Telemetry, VSP, …). Depot ≈ 144 GB used / 31 GB free.
+License, Salt, Telemetry, VSP, …).
 
-**9.1.0.0100 async patch (released 2026-06-05) — downloaded + checksum-validated 2026-06-17**
-(`/root/newpatch-dl.log`: `5 SUCCESS | 0 FAILED`):
+**Async patch builds** (UPGRADE/PATCH, `-t UPGRADE`) — latest per component as of 2026-06-25:
 
-| Component | Patch version | Size |
-|-----------|---------------|------|
-| ESX_HOST | `9.1.0.0100.25433460` | 0.7 GB |
-| SDDC_MANAGER_VCF | `9.1.0.0100.25428926` | 2.4 GB |
-| HCX | `9.1.0.0100.25426672` | 4.7 GB |
-| NSX_T_MANAGER | `9.1.0.0100.25470810` | 6.4 GB |
-| VCENTER | `9.1.0.0100.25417926` | 28.7 GB |
+| Component | Latest patch build | Release | Size |
+|-----------|--------------------|---------|------|
+| SDDC_MANAGER_VCF | **`9.1.0.0200.25496021`** | 2026-06-25 | 2.4 GB |
+| ESX_HOST | `9.1.0.0100.25433460` | 2026-06-05 | 0.7 GB |
+| HCX | `9.1.0.0100.25426672` | 2026-06-05 | 4.7 GB |
+| NSX_T_MANAGER | `9.1.0.0100.25470810` | 2026-06-05 | 6.4 GB |
+| VCENTER | `9.1.0.0100.25417926` | 2026-06-05 | 28.7 GB |
 
-GA (`…2537xxxx`, 2026-05-12) builds remain alongside the patch builds (download is cumulative).
+Only SDDC Manager has a `0200` build (2026-06-25); the rest top out at `0100` (2026-06-05).
+GA (`…2537xxxx`, 2026-05-12) + all intermediate patch builds remain alongside (download is
+cumulative). This is the **latest available** for the token's catalog — `9.1.0.1 / 9.1.0.2 /
+9.1.1.0` return `0 elements`, and there is no INSTALL bundle newer than 9.1.0.0 GA. Depot ≈ 151 GB
+used / 24 GB free. Re-check for newer builds with:
+`binaries list … --vcf-version=9.1.0.0..9.9.9.9 --lifecycle-managed-by=SDDC_MANAGER_VCF -t UPGRADE`.
