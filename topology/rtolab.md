@@ -182,45 +182,49 @@ FQDNs: `kosten-vcf521b-esx0{N}.rtolab.local`
 
 ---
 
-## VCD 10.6.1 (IP range: .60–.61)
+## VCD 10.6.2 (IP range: .60–.61)
 
-**Repo**: https://github.com/kostenyang/vcloud-director — deploy scripts at `rtolab/`
-**Connects to**: VCF 5.2.1 (521b) inner vCenter (kosten-vcf521b-vc.rtolab.local @ 192.168.114.96) **and** the external `lab.com` environment (Sean, 192.168.113.x — see below)
+**Repo**: https://github.com/kostenyang/vcloud-director — deploy scripts at `rtolab/` (E:\VCD\01..05)
+**Connects to**: the external `lab.com` environment (Sean, 192.168.113.x — see below). *(521b vC/NSX are no longer registered — see rebuild note.)*
 
 | Component | FQDN | IP | Role |
 |-----------|------|----|------|
-| VCD Appliance | kosten-vcd.rtolab.local | 192.168.114.60 | VCD 10.6.1; UI https://kosten-vcd.rtolab.local/ui |
-| NFS Server | kosten-vcd-nfs.rtolab.local | 192.168.114.61 | Ubuntu 20.04; NFS transfer storage |
+| VCD Appliance | kosten-vcd.rtolab.local | 192.168.114.60 (eth0) / .62 (eth1 DB) | **VCD 10.6.2** (build 25442100, product 10.6.2.25290468); UI https://kosten-vcd.rtolab.local/ui; provider admin `administrator@System` / VMware1!VMware1!; root/VMware1!VMware1! |
+| NFS Server | kosten-vcd-nfs.rtolab.local | 192.168.114.61 | Ubuntu 20.04 (`ubuntu`/VMware1!VMware1!); NFS transfer storage |
 
 **NFS export**: `192.168.114.61:/exports/vcd-transfer`
 **VCD transfer mount**: `/opt/vmware/vcloud-director/data/transfer`
+
+### 2026-07-23 rebuild — wiped & clean-redeployed to 10.6.2
+Appliance was wiped (`02-Deploy-VcdOva.ps1 -WipeFirst`) → fresh 10.6.1 OVA → systemSetup API → patched to 10.6.2 via the **update bundle** (no standalone 10.6.2 OVA exists). This erased all prior config (the old 521b PVDC/tenant chain + any registrations). On the fresh 10.6.2 only the **lab.com vCenter + NSX are re-registered**; **no PVDC / tenant chain is built** (deferred per user — "其他先不用管"). Full redeploy+patch procedure & gotchas: memory `reference_vcd_appliance_setup_api` / `reference_vcd_connect_vcf_api`.
 
 ### Registered providers (vCenter + NSX backing this VCD)
 
 | Provider (VCD name) | FQDN | IP | Creds | Notes |
 |---------------------|------|----|-------|-------|
-| vcf521b-vc | kosten-vcf521b-vc.rtolab.local | 192.168.114.96 | administrator@vsphere.local / VMware1!VMware1! | 521b inner vCenter; full PVDC/tenant chain built on this |
-| vcf521b-nsx | kosten-vcf521b-nsx.rtolab.local | 192.168.114.98 | admin / VMware1!VMware1! | 521b NSX |
-| vcsa-lab-113 | vcsa.lab.com | 192.168.113.10 | administrator@vsphere.local / VMware1! · root / VMware1! | **External — Sean's `lab.com` lab, NOT rtolab IP space.** Added 2026-06-17 |
+| vcsa-lab-113 | vcsa.lab.com | 192.168.113.10 | administrator@vsphere.local / VMware1! · root / VMware1! | **External — Sean's `lab.com` lab, NOT rtolab IP space.** Registered, enabled |
 | nsx-lab-113 | nsx.lab.com | 192.168.113.41 | admin / 1qaz@WSX3edc | Sean's NSX; `*.lab.com` wildcard cert |
 
-> ESXi in the lab.com set: `esxi-01..04.lab.com` @ 192.168.113.11–14 (root / VMware1!).
+> ESXi in the lab.com set: `esxi-01..04.lab.com` @ 192.168.113.11–14 (root / VMware1!). NSX has edge cluster `ESG-Cluster` + `T0-GW` (ACTIVE_ACTIVE, uplinks on 192.168.119/120) + overlay TZ `nsx-overlay-transportzone`. RP `lab` (resgroup-4049) + `vsanDatastore` on vcsa.lab.com.
 
-### lab.com (192.168.113.x) integration — gotchas (2026-06-17)
+### lab.com (192.168.113.x) integration — gotchas
 
-`192.168.113.x` / `lab.com` is a **separate external environment** reached from rtolab; it shares nothing with rtolab IPs/DNS. Registering it into VCD hit three traps:
+`192.168.113.x` / `lab.com` is a **separate external environment** reached from rtolab; it shares nothing with rtolab IPs/DNS. Registering it into VCD hit several traps:
 
 1. **Must register by FQDN, not IP** — VCD strictly validates cert SAN against the URL. Cert SANs are `vcsa.lab.com` / `*.lab.com`; `url=https://<IP>` → task error `Certificate for <IP> doesn't match SAN`.
-2. **No lab.com DNS zone in rtolab** — so resolution is via `/etc/hosts`:
-   - **VCD cell** (`192.168.114.60`, Posh-SSH root/VMware1!VMware1!): added `192.168.113.10 vcsa.lab.com` + `192.168.113.41 nsx.lab.com` — required for the registration call to resolve.
+2. **No lab.com DNS zone in rtolab** — resolution via `/etc/hosts`:
+   - **VCD cell** (`192.168.114.60`): added `192.168.113.10 vcsa.lab.com` + `192.168.113.41 nsx.lab.com` — required for the registration call to resolve. (⚠️ fresh appliance = re-add after any redeploy.)
    - **Jumpbox** (`172.16.10.32`, `C:\Windows\System32\drivers\etc\hosts`): added vcsa/esxi-01..04/nsx `.lab.com`. ⚠️ **Without this, `*.lab.com` resolves to PUBLIC internet IPs** (lab.com is a real registered domain → `76.223.54.146` etc.) — any FQDN-based PowerCLI/browser call would leave the lab. Other hosts need their own hosts entries; there is no shared zone.
-3. **vCenter SSO was down (envoy-sidecar)** — registration failed with "credentials" error but real cause was vcsa's own `POST /api/session` → 500 badGateway. vapi-endpoint stuck `INITIALIZED`, vpxd `AcquireToken` + vapi both got `Connection reset` on `localhost:1080/sso-adminserver`. **`:1080` is `vmware-envoy-sidecar`** (NOT rhttpproxy/stsd — both were healthy). Fix: `service-control --restart vmware-envoy-sidecar` then `vmware-vapi-endpoint`. Certs were all valid (not expiry). See debug-vcf9.1 handbook.
+3. **vcsa.lab.com service flakiness (Sean's box)** — twice its internal services were down:
+   - **SSO/envoy-sidecar**: registration failed "credentials" but real cause = vcsa `POST /api/session` → 500 badGateway; vapi-endpoint stuck `INITIALIZED`; `Connection reset` on `localhost:1080/sso-adminserver`. **`:1080` is `vmware-envoy-sidecar`** (NOT rhttpproxy/stsd — both healthy; certs all valid). Fix: `service-control --restart vmware-envoy-sidecar` then `vmware-vapi-endpoint`.
+   - **SPS/`/pbm` = 503**: blocks PVDC creation (VCD needs SPBM to list storage policies). Fix (if chain ever needed): restart `vmware-sps` on vcsa.lab.com. *(SSH to vcsa.lab.com uses Posh-SSH root/**VMware1!** — single, vCenter 8.0.3 KEX ok; the VCD Photon appliance instead needs native OpenSSH, Posh-SSH KEX fails there.)*
 
 ### Artifacts
 
 | File | Path on E:\ |
 |------|-------------|
-| VCD OVA | `E:\VCD\VMware_Cloud_Director-10.6.1.11883-25088252_OVF10.ova` |
+| VCD 10.6.1 OVA (base) | `E:\VCD\VMware_Cloud_Director-10.6.1.11883-25088252_OVF10.ova` |
+| VCD 10.6.2 update bundle | `E:\VCD\VMware_Cloud_Director_10.6.2.11936-25442100_update.tar.gz` (patch, **not** a full OVA) |
 | NFS VM OVA | `E:\ubuntu-2004-cloud.ova` |
 | Deploy scripts | `E:\VCD\01-Deploy-NfsVm.ps1` … `05-Connect-Vcf521.ps1` |
 
