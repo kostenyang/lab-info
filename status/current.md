@@ -25,6 +25,17 @@ Last updated: 2026-06-28
 - **2026-06-27 incident**: mgmt plane (vCenter .11 / SDDC .10 / Ops .75) found hung (ping only, 443+5480+Tools dead). Root cause = **10 inaccessible vSAN objects** (vCenter+SDDC VM-home namespaces gone; Ops OS disk gone) on FTT=0 nested vSAN — unrecoverable (`objtool getAttr` → No such file). Hardware/cluster healthy. Aftermath of the outer-vSAN freeze. → full wipe + re-bringup.
 - **Rebuild gotchas hit** (now in `runbooks/golden-ova.md`): `_prep_redeployed` GuestOps can't persist files (EPERM) on current golden OVA → IP/UUID revert; **vmk0 MAC must be unique AND ≠ vmnic0 HW MAC** (else `Migrate ESX vmknic to vDS` fails `VSPHERE_CONFIGURE_HOST_DVS_FAILED`/HostCommunication — cost 2 retries). Fix: SSH (not GuestOps) for uuid/marker/cert/auto-backup; let ESXi auto-generate vmk0 MAC.
 - Pre-submit IP sweep confirmed all spec IPs free (VCFA pool .78–.83 incl.); vSAN FTT=0 via spec datastore-default policy. Outer vSAN healthy (9 TB free). VSP/Automation (leader-election watch) stage still ahead.
+
+**2026-09-01/02 — 「移除 VCF Operations 能不能重建回來」測試 → 管理層全新重建（converge）**
+- 結論：VCF 9.1 **沒有**移除/重新部署 Operations 的動作。Ops 主控台只有 Add Node/Scale Out、SDDC Manager 無入口（已 deprecated）、API 無 decommission 端點。
+- 同 build OVA、**同 FQDN/IP 重裝 → fleet 不接回**，開機導向 `/admin/newCluster.action` 全新安裝精靈。443 通 ≠ 就緒（要 suite-api token + node ONLINE）。
+- 受支援只有兩條：① **事前**設好 backup location → Backup & Restore；② **VCF Installer converge** 既有 vCenter+NSX 重建管理層（新 fleet ID、Ops 歷史資料不跟過來）。
+- **執行中（09-02 00:0x 起）**：converge 重建管理層 —— 沿用既有 vCenter `.11` + NSX `.13`，其餘全新部署。新元件用 `-r2` FQDN：fleet-r2 `.215` / vsp-r2 `.216` / vspp-r2 `.217` / auto-r2 `.218` / **ops-r2 `.219`** / vidb-r2 `.220` / vspp2-r2 `.221`；IP range 管理服務 `.225-240`、VCFA `.241-252`；新 SDDC Manager 沿用 `kosten-vcf91-sddc`。134 子任務 / 5 里程碑。
+- 舊管理元件一律 **park（關機+改名 `-OLD-20260901`）不刪**：sddc、4×vspp、vcfa-platform、ops-coll、lic。
+- 踩雷：勾「既有 VCF Operations」會被連動 VCFA 憑證鏈擋死（只勾 vCenter+NSX 才過）；IP pool 至少 12；VCFA 欄位拿不掉；改欄位後 validation 必 RE-RUN；**驗證唯一失敗＝叢集 DRS 要 FullyAutomated**；自動產生的密碼要當場匯出。
+- **VSP supervisor VM「自己開回來」根因＝逐台優雅關機被存活節點救回**，四台同時 `Stop-VM` 即解（12/60 分鐘兩輪盯梢佐證）。
+- ⏳ 未測：授權鏈影響（全程 Evaluation Mode，無真授權 → 待使用者上 license 後複驗）。
+- 手冊：[debug-vcf9.1 08-ops-loss-and-mgmt-rebuild.md](https://github.com/kostenyang/debug-vcf9.1)；測試報告+操作手冊 docx 在 `rto/dev-docs/vcf91-ops-rebuild/`。
 **Offline depot** (`rtolab-depotsrv` @ 172.16.10.50, nginx :8888): full 9.1.0.0 INSTALL set + all async patch builds up to **SDDC Manager `9.1.0.0300.25536191`** (2026-06-30, latest available) + `0100` (2026-06-05) for ESX/HCX/NSX/vCenter. Updated to latest 2026-07-02 (`12 binaries`, 0 FAILED, served over HTTP). vmdk 180 GB, 21 GB free. No DNS record / no 521 conflict (.50 is jumpbox segment). See `runbooks/depot-server.md`.
 **SFTP backup** (`rtolab-sftp` @ 172.16.10.51, built 2026-07-02): SDDC Manager (VCF) backup target — sftp-only chroot user `sddcbackup` → `/backups`, 200 GB. **SDDC Manager backup config wired + verified 2026-07-02** (`isConfigured=true`; on-demand backup Successful → SDDC Mgr `.tar.gz` + NSX bkp landed in `/backups`). `backupSchedules` still empty (on-demand only — no time schedule yet). See `runbooks/backup-sftp.md`.
 **VCF 9.0**: running (reference baseline)
