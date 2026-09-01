@@ -58,6 +58,7 @@ Single source of truth for **two separate VCF lab environments**, each in its ow
 |----------|---------|
 | **[kostenyang/debug-vcf9.1](https://github.com/kostenyang/debug-vcf9.1)** | **VCF 9.1 除錯手冊（症狀路由 → 根因 → 可貼上的指令）— 兩個 lab 通用，先看這裡再動手** |
 | [runbooks/golden-ova.md](runbooks/golden-ova.md) | Golden OVA clone + fix procedure |
+| [runbooks/cdp-browser-automation.md](runbooks/cdp-browser-automation.md) | Drive any VMware web UI over Chrome DevTools Protocol — repeatable UI steps + screenshots that land as local PNGs (for deliverable docs) |
 | [runbooks/bringup.md](runbooks/bringup.md) | VCF Option B full bringup flow |
 | [runbooks/vks.md](runbooks/vks.md) | VKS / Supervisor setup & operations |
 | [runbooks/depot-server.md](runbooks/depot-server.md) | Offline VCF depot download/serve |
