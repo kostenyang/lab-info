@@ -156,9 +156,23 @@ return 'checked ' + n;
 | 產品 | 帳號 | 密碼 | 送出 | 備註 |
 |---|---|---|---|---|
 | VCF Operations | `#userName-inputEl` | `#password-inputEl` | `#loginBtn` | ExtJS；`#authSelector-inputEl` 選登入方式 |
-| NSX Manager | `#username` | `#password` | 文字為 `LOG IN` 的按鈕 | `#authentication-providers` 是真 `<select>`（`VCF SSO` / `Local Account`） |
+| NSX Manager | `#username` | `#password` | 文字為 `LOG IN` 的按鈕 | 🔴 **必須用 `fill` 不能用 `type`**（見下）；`#authentication-providers` 是真 `<select>`（`VCF SSO` / `Local Account`） |
 | vCenter（VCF SSO 已啟用） | — | — | `#idpLoginBtn` | 按下後導向 Identity Broker |
 | Identity Broker (VIDB) | `#username-control` | `#password` | `#loginBtn` | 送出要用 `realClick`，`click` 有時不觸發 |
+
+🔴 **NSX 登入表單：用 `fill`，不要用 `type`。**
+`type` 是「真滑鼠點欄位 → `Input.insertText`」，但 NSX 登入頁點 `#password` **焦點不會轉移**，
+於是密碼被接在帳號後面（`adminVMware1!VMware1!` / password 長度 0），送出就是 `login_error=1`。
+**錯誤登入會累積、可能鎖帳號**，所以送出前一定要先驗欄位值：
+
+```json
+[{"fill":[["#username","admin"],["#password","<pw>"]]},
+ {"wait":1000},
+ {"eval":"(()=>{const u=document.querySelector('#username'),p=document.querySelector('#password'); return JSON.stringify({u:u.value,plen:p.value.length})})()"}]
+```
+
+確認回傳是 `{"u":"admin","plen":16}` 這種「帳號對、密碼長度對」再按送出。
+通則：**任何登入表單，送出前先 eval 檢查欄位值**——重試的代價是鎖帳號，不是多跑一次。
 
 ### 4.6 換帳號登入 = 清 cookie
 
@@ -208,7 +222,8 @@ NSX 這類 `#/app/...` 的 SPA，`Page.navigate` 只換 hash 不會重新渲染�
 | `realClickText` 回報 `@0,0` | 同上——抓到 rect 全 0 的隱藏元素。 |
 | 腳本跑完卡住不結束 | WebSocket 沒 unref。腳本結尾已加 `process.exit(0)`。 |
 | 導航後畫面還是舊頁 | SPA hash route，見 §4.7。 |
-| 帳號被鎖 | **不要拿密碼反覆試錯**。先用 API 驗一次帳密再進 UI。 |
+| 送出後 `login_error=1` / 登入失敗 | 十之八九是**欄位沒填到你以為的地方**（`type` 焦點沒轉移，密碼接在帳號後）。改用 `fill`，並在送出前 eval 檢查欄位值，見 §4.5。 |
+| 帳號被鎖 | **不要拿密碼反覆試錯**。先用 API 驗一次帳密（例：vCenter `POST /api/session`、Ops `POST /suite-api/api/auth/token/acquire`）再進 UI。 |
 
 ---
 
