@@ -15,7 +15,7 @@ Last updated: 2026-06-28
 | Layer 3 (post-bringup) | In progress | Runbooks written; VCFA deployed; VKS bootstrap WIP |
 | Layer 4 (day-2) | Complete | Batch ESXi upgrade 9.0→9.1 implemented |
 | Layer 5 (VKS) | Planned | IP reservations done; scripts scaffolded |
-| VCF 5.2.1 (521b) | **Complete** | bringup COMPLETED_WITH_SUCCESS 2026-06-10 (`4245d988`, sddcId `vcf-m02b`) |
+| VCF 5.2.1 (521b / 521c) | ⛔ **DELETED 2026-09-01** | 521b 於 2026-08-28/29 手動升級為純 vSphere 9.1（vCenter 9.1.0 b25417926 + ESXi ×4 9.1.0 b25370933），文件產出後兩套 nested host（8 台 VM / 3.5 TB）**永久刪除**。留下 `kosten-vcf521-avi`、`vcf-cloudbuilder-521`（關機）。手冊與踩雷：[debug-vcf521 03-upgrade-8.0u3-to-9.1.md + guide/](https://github.com/kostenyang/debug-vcf521) |
 | VCD **10.6.2** | Clean-redeployed | 2026-07-23 wiped 10.6.1 → fresh OVA → patched to **10.6.2** (build 25442100). Appliance @ .60 up, provider login OK. Only **lab.com vCenter (vcsa.lab.com) + NSX (nsx.lab.com)** re-registered; **no PVDC/tenant chain built** (deferred per user). Old 521b chain gone with the wipe. |
 | SSP 5.1.2 (vDefend) | Installer up · License Hub loaded | Installer appliance @ **.66** (`kosten-ssp`), redeployed 2026-06-17 (moved off `.55` — collided with stale 521 `kosten-vcf521-sddc` reservation). **License Hub (LICENSE bundle 5.1.2-0.0-25400319, 4.46 GB) uploaded to depot → READY** via depot REST API (`POST /sspi/bundles/remote?type=LICENSE`, server-side pull). depot now has INSTALLER (IN_USE) + LICENSE (READY). **platform stand-up pending** (run wizard · NSX target .13 · node IPs from a 3-way-clean block, NOT .55-.59) |
 
@@ -28,7 +28,11 @@ Last updated: 2026-06-28
 **Offline depot** (`rtolab-depotsrv` @ 172.16.10.50, nginx :8888): full 9.1.0.0 INSTALL set + all async patch builds up to **SDDC Manager `9.1.0.0300.25536191`** (2026-06-30, latest available) + `0100` (2026-06-05) for ESX/HCX/NSX/vCenter. Updated to latest 2026-07-02 (`12 binaries`, 0 FAILED, served over HTTP). vmdk 180 GB, 21 GB free. No DNS record / no 521 conflict (.50 is jumpbox segment). See `runbooks/depot-server.md`.
 **SFTP backup** (`rtolab-sftp` @ 172.16.10.51, built 2026-07-02): SDDC Manager (VCF) backup target — sftp-only chroot user `sddcbackup` → `/backups`, 200 GB. **SDDC Manager backup config wired + verified 2026-07-02** (`isConfigured=true`; on-demand backup Successful → SDDC Mgr `.tar.gz` + NSX bkp landed in `/backups`). `backupSchedules` still empty (on-demand only — no time schedule yet). See `runbooks/backup-sftp.md`.
 **VCF 9.0**: running (reference baseline)
-**VCF 5.2.1 (521b)**: ✅ bringup completed 2026-06-10 — SDDC Mgr .95 / vCenter .96 / NSX VIP .98 / nodes .97 / ESXi .90–93 (on `trunk521`). Resolved the shared `/system/uuid` vSAN trap via layer1 unique-UUID prep.
+**VCF 5.2.1 (521b / 521c)**: ⛔ **已於 2026-09-01 永久刪除**（8 台 nested host VM，釋出 ~3.5 TB vSAN 與 ~384 GB 外層 RAM）。
+歷程：2026-06-10 bringup 完成（SDDC .95 / vC .96 / NSX VIP .98 / node .97 / ESXi .90–93 on `trunk521`）→
+2026-08-28/29 拆成「客戶樣貌的純 vSphere」並**手動升到 9.1**（vCenter 8.0U3→9.1、cluster 轉 vLCM 單一映像、ESXi ×4→9.1，映像符合性 COMPLIANT 4/4）→
+產出客戶版升級手冊後刪除環境。IP 段 `.90-.93`/`.95-.98`（521b）與 `.50-.58`（521c）**已釋出**，但 DNS 記錄尚未清（重用前先查反解）。
+方法、踩雷與交付手冊：**[debug-vcf521](https://github.com/kostenyang/debug-vcf521)** 的 `03-upgrade-8.0u3-to-9.1.md` 與 `guide/`。
 **VCD 10.6.2**: up @ .60. **2026-07-23 wiped the 10.6.1 appliance and clean-redeployed to 10.6.2** (deploy 10.6.1 OVA → systemSetup → apply update bundle → DB schema upgrade; no standalone 10.6.2 OVA exists). Fresh appliance has only **lab.com vCenter (vcsa.lab.com .10) + NSX (nsx.lab.com .41) re-registered**; the earlier 521b provider/tenant chain was erased by the wipe and **not rebuilt** (deferred per user — "其他先不用管"). If the chain is ever needed: fix vcsa.lab.com `/pbm` 503 (restart `vmware-sps`) + get an external uplink subnet (T0-GW on 192.168.119/120) from Sean. Redeploy gotchas (NFS-share clean-state, native-ssh for Photon appliance, `vamicli update --install latest`, envoy-sidecar SSO fix) in `topology/rtolab.md` + memory.
 
 ### Known issues
