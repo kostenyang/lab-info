@@ -30,7 +30,9 @@ Last updated: 2026-06-28
 - 結論：VCF 9.1 **沒有**移除/重新部署 Operations 的動作。Ops 主控台只有 Add Node/Scale Out、SDDC Manager 無入口（已 deprecated）、API 無 decommission 端點。
 - 同 build OVA、**同 FQDN/IP 重裝 → fleet 不接回**，開機導向 `/admin/newCluster.action` 全新安裝精靈。443 通 ≠ 就緒（要 suite-api token + node ONLINE）。
 - 受支援只有兩條：① **事前**設好 backup location → Backup & Restore；② **VCF Installer converge** 既有 vCenter+NSX 重建管理層（新 fleet ID、Ops 歷史資料不跟過來）。
-- **執行中（09-02 00:0x 起）**：converge 重建管理層 —— 沿用既有 vCenter `.11` + NSX `.13`，其餘全新部署。新元件用 `-r2` FQDN：fleet-r2 `.215` / vsp-r2 `.216` / vspp-r2 `.217` / auto-r2 `.218` / **ops-r2 `.219`** / vidb-r2 `.220` / vspp2-r2 `.221`；IP range 管理服務 `.225-240`、VCFA `.241-252`；新 SDDC Manager 沿用 `kosten-vcf91-sddc`。134 子任務 / 5 里程碑。
+- **✅ 完成（09-02）**：converge 重建管理層 —— 沿用既有 vCenter `.11` + NSX `.13`，其餘全新部署。新元件 `-r2`：fleet-r2 `.215` / vsp-r2 `.216` / vspp-r2 `.217` / **ops-r2 `.219`** / vidb-r2 `.220` / vspp2-r2 `.221`；IP range 管理服務 `.225-240`、VCFA `.241-252`；新 SDDC Manager 仍 `kosten-vcf91-sddc` `.10`。里程碑 1–5 全成功（00:47/00:52/03:37/05:07/06:47）。
+- **驗收通過**：Ops ONLINE 9.1.0.0 b25541561 + **19 adapters**、SDDC Manager 5 服務 UP（9.1.0.0400.25570101）、domain/cluster ACTIVE、4 host ASSIGNED 9.1.0.0.25370933、NSX 11 group 全 STABLE。舊 Ops `.75` 仍開機但已是孤兒。
+- **⚠️ 第 6 個里程碑 `Deploy and configure VCF Automation` 卡死 2/8**（本環境不用 VCFA，使用者決定不修）：UI 狀態欄顯示 In progress 但要展開該列才看到 `Failed to configure LCM components`；根因＝VSP 的 `fleet-build-service` 每 10 秒重複推送 fleet depot 設定推不進 SDDC LCM，15 GB bundle 從未開始傳（runtime 對 installer 零連線、images 不成長）；232 個 bundle 全 PENDING。詳 debug-vcf9.1 §8。
 - 舊管理元件一律 **park（關機+改名 `-OLD-20260901`）不刪**：sddc、4×vspp、vcfa-platform、ops-coll、lic。
 - 踩雷：勾「既有 VCF Operations」會被連動 VCFA 憑證鏈擋死（只勾 vCenter+NSX 才過）；IP pool 至少 12；VCFA 欄位拿不掉；改欄位後 validation 必 RE-RUN；**驗證唯一失敗＝叢集 DRS 要 FullyAutomated**；自動產生的密碼要當場匯出。
 - **VSP supervisor VM「自己開回來」根因＝逐台優雅關機被存活節點救回**，四台同時 `Stop-VM` 即解（12/60 分鐘兩輪盯梢佐證）。
