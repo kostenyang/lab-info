@@ -93,3 +93,71 @@ Depot ≈ 154 GB used / 21 GB free.
 > just-released build (e.g. `0300` didn't show until a fresh run). New patch builds live under the
 > `9.1.0.0` bucket — `--vcf-version=9.1.0.0300` alone returns `0 elements`. Always re-check with the
 > **range**: `binaries list … --vcf-version=9.1.0.0..9.9.9.9 --lifecycle-managed-by=SDDC_MANAGER_VCF -t UPGRADE`.
+
+---
+
+## VCF 9.1.1（2026-09-04 新增，取代上節「9.1.1.0 回 0 elements」的舊結論）
+
+**9.1.1.0 已經可以下載了**，而且用的還是**同一份既有 download token**（`/root/vcf-token.txt`）——
+不需要另外申請什麼 software ID：
+
+```bash
+/root/vcf-download-tool-91/bin/vcf-download-tool releases list \
+  --depot-download-token-file=/root/vcf-token.txt
+# → Depot credentials are valid. / 清單第一項就是 9.1.1.0
+```
+
+### 認證方式已經在換（現在還不急）
+
+| 參數 | 狀態 |
+|---|---|
+| `--depot-download-token-file` | 我們在用的；工具標為 **superseded**，但註明 *available until 5.x is not EOL* |
+| `--depot-download-activation-code-file` | 新的。**activation code 在 Broadcom download portal 用自己的帳號權益產生**，存成單行文字檔 |
+
+要換的時候只要把檔案換掉、參數換名即可，流程不變。
+
+### ⚠️ 9.x 沒有 UPGRADE bundle
+
+```bash
+bash /root/my-vcfdepot.sh -t /root/vcf-token.txt --type UPGRADE --filename-like '*9.1.1*' --summary
+# → Components: 1  Files: 1  Total: 0.0 GB   ← 空的
+```
+
+**fleet 元件在 9.x 一律以 `INSTALL` 發佈**（Fleet LCM 是「安裝服務」不是「升級包」）。
+要抓 9.1.1 一定要用 `--type INSTALL`，用 UPGRADE 會什麼都抓不到還以為沒發佈。
+
+### 全套很大，別整套抓
+
+```
+全部 9.1.1：48 元件 / 300 檔 / 266.9 GB   ← 磁碟塞不下
+```
+
+### 這次實際抓下來的（升級這套 fleet 需要的最小集合）
+
+用 `--type INSTALL --filename-like '*9.1.1*' --latest-only`，腳本 `/root/dl911.sh`（分 A/B 兩段，
+先抓管理層確保 VRA/VSP 落地，磁碟不夠時 B 可放棄）：
+
+| 元件 | 檔數 | 大小 |
+|---|---|---|
+| VSP | 6 | 16.11 GB |
+| **VRA（VCF Automation）** | 4 | **15.67 GB** |
+| VCENTER | 1 | 9.71 GB |
+| NSX_T_MANAGER | 1 | 8.26 GB |
+| VCF_OPS_CLOUD_PROXY | 1 | 3.22 GB |
+| VROPS | 1 | 3.15 GB |
+| SDDC_MANAGER_VCF | 1 | 2.40 GB |
+| DEPOT_SERVICE / VCF_LICENSE_SERVER / VIDB / VCF_SALT_RAAS / VCF_SDDC_LCM / VCF_FLEET_LCM / VCFDT / VCF_SALT / TELEMETRY_ACCEPTOR | 各 1–4 | 合計 ~5.5 GB |
+| **總計** | **45** | **64.03 GB** |
+
+驗證：`sha256 matches catalog` **45 OK / 0 不符 / 0 錯誤**。之後磁碟 686G 已用、**90 GB 可用**。
+
+### 踩雷
+
+- **包裝腳本 `my-vcfdepot.sh` 成功也會回 `RC=1`** —— 兩段都印了 `Done. Depot roo`t 且 sha256 全 OK，
+  退出碼仍是 1。**不要用退出碼判斷成敗**，改看：
+  ```bash
+  grep -c 'sha256 matches catalog' /root/dl911.out     # 應等於檔案數
+  grep -icE 'mismatch|checksum fail' /root/dl911.out   # 應為 0
+  ```
+- 抓之前先用 `--summary` 估算，再對 `df -h /` 確認放得下；本機只有一顆 776 GB 的 `/`，
+  depot 撐爆會連 nginx 服務一起拖下水。
