@@ -14,16 +14,20 @@ VCF 9.1.0 部署出來的 VCFMS（也就是我們慣稱的 **VSP** / VCF service
 
 VCF 9.1.1 把 Day-0 服務逐一右調（right-size），結果是：
 
-| | VCF 9.1.0 | VCF 9.1.1（縮減後） |
+| | 升級前（9.1.0 起家） | 跑完右調腳本後 |
 |---|---|---|
-| Simple 部署 | 1 CP + **3** worker | 1 CP + **2** worker |
-| 省下的資源 | — | 約 **12 vCPU / 24 GB**（等於一台 worker） |
+| 節點數 | 1 CP + **3** worker | 1 CP + **2** worker |
+| CP | 4 vCPU / 10 GB | 4 vCPU / 10 GB（不變） |
+| Worker | `cluster.worker.size = medium` | **12 vCPU / 24 GB**（machineType 改成 `management.nonha.small`、`minReplicas=2`） |
 
-> ⚠️ **原文措辭有歧義，別照抄**：關於 worker 尺寸，可以讀成「每台 worker **縮到** 12 vCPU / 24 GB」，
-> 也可以讀成「**減掉** 12 vCPU / 24 GB（＝少一台 worker）」。
-> **我們自己量過的現況支持後者**：rtolab 的 VSP 是 CP `4 vCPU / 10 GB` ＋ **3 台 worker 各 `12 vCPU / 24 GB`**，
-> worker 本來就已經是 12/24，所以對我們而言真正的變化是**少一台 worker**。
-> 套用前先自己量一次（`Get-VM 'kosten-vcf91-vspp*' | ft Name,NumCpu,MemoryGB`），不要憑文章下判斷。
+> 以上是**原文截圖裡的實測值**（腳本輸出 + 事後的 vCenter VM 清單），不是推測。
+>
+> ⚠️ **rtolab 現況要自己先量**：我們的 VSP 是 CP `4 vCPU / 10 GB` ＋ **3 台 worker 各 `12 vCPU / 24 GB`** ——
+> worker 尺寸**已經等於**原文右調後的值，所以對我們而言預期的變化主要是**節點數 3 → 2**。
+> 套用前務必先量一次，不要照抄別人的 before/after：
+> ```powershell
+> Get-VM 'kosten-vcf91-vspp*' | Format-Table Name, NumCpu, MemoryGB
+> ```
 
 **關鍵：升級到 9.1.1 之後不會自動縮**。既有環境維持原尺寸，除非你手動跑右調腳本。
 
@@ -52,28 +56,70 @@ VCF 9.1.1 把 Day-0 服務逐一右調（right-size），結果是：
 VCF Operations UI：
 
 ```
-Build ▸ Lifecycle ▸ VCF Management ▸ Components ▸ VCF Services Runtime
+Build ▸ Lifecycle ▸ VCF Management ▸ Components ▸（下方 Nodes 表格）
 ```
 
-在節點表格中找出 control plane 那一台。
+Nodes 表格會列出 VM name / Node Type / IP address，找 **Node Type = Control Plane** 那一台。
+（其餘是 Worker。腳本一定要在 **control plane** 上跑。）
 
 ### 2. 把腳本 scp 上去
 
+腳本檔名（原文截圖可見）：**`rightsize-day0-workers.sh`**，從 Broadcom KB 下載。
+
 ```bash
-scp <right-sizing-script> vmware-system-user@<control-plane-node>:/tmp/
+scp rightsize-day0-workers.sh vmware-system-user@<control-plane-node>:/tmp/
 ```
 
-### 3. SSH 進去、用 sudo 執行
+### 3. SSH 進去、提權到 root 執行
 
 ```bash
 ssh vmware-system-user@<control-plane-node>
-sudo /tmp/<right-sizing-script>      # 用 sudo 提權到 root 執行
+sudo -i                       # 提權到 root（腳本是以 root 執行的）
+./rightsize-day0-workers.sh
 ```
 
-### 4. 盯 rollout（約 10–15 分鐘）
+腳本會**先跳警告**再要你手動確認：
+
+```
+WARNING: This script will trigger new machine type rollouts.
+         This action can disrupt ongoing operations on the deployed cluster.
+Type "yes" to proceed:
+```
+
+**它是非同步的** —— 送出 worker resize 後就立刻返回，實際的節點汰換由平台在背景進行。
+指令跑完 ≠ 縮容完成。
+
+腳本自己會做的檢查（看它的輸出就知道卡在哪一關）：
+
+| 階段 | 它在做什麼 |
+|---|---|
+| Checking prerequisites | 找 `kubectl`（/usr/local/bin）、`jq`（/usr/bin）、`vmsp`（/usr/local/bin），並使用 `KUBECONFIG=/etc/kubernetes/admin.conf` |
+| Validating installed components | 確認**沒有** Day-N 元件（`ops-logs` / `vcf-obs-data-platform`）；有裝就不該套 |
+| Collecting cluster sizing data | 從 `pd/vmsp-platform` 讀 `profiles.name`、`cluster.worker.size`、`cluster.ha`、`cluster.type`、`ingress.fleet.fqdn` |
+| Applying worker sizing | 依情境決定 machineType 與 minReplicas。原文例子：small + non-HA + fleet → `management.nonha.small`、`minReplicas=2` |
+| 實際變更 | 更新 `PackageDeployment/vmsp-platform`（`releases.vmsp.vmware.com/v1alpha1`）並新建一個 `vmsp.release.vmsp-platform.vNN` Secret |
+
+### 4. 盯 rollout
 
 ```bash
 kubectl get pd vmsp-platform -n vmsp-platform -w
+```
+
+輸出的 `PHASE` / `STATUS` 會從 `Progressing / package deployment is in progress`
+走到 **`Successful / successful package deployment`**。
+
+**時間預期（原文說法，別搞混這兩個數字）**：
+
+- 新的 worker 節點**大約 10–15 分鐘開始**汰換；
+- 但整個叢集收斂到最佳狀態要 **15–60 分鐘**（平台一次換一台，叢集越大越久，
+  PD 成功之後還會依實際用量再往下 scale down）。
+
+### 5. 驗收
+
+vCenter 看 VM 清單（用 VM 名稱前綴過濾），應該剩 **1 台 CP + 2 台 worker**：
+
+```powershell
+Get-VM 'kosten-vcf91-vspp*' | Format-Table Name, NumCpu, MemoryGB
 ```
 
 ---
@@ -91,7 +137,7 @@ kubectl get pd vmsp-platform -n vmsp-platform -w
 
 ## 尚待驗證
 
-- 實際的 KB 編號與腳本名稱（原文皆未提供）。
+- **KB 編號**（原文只說「從 KB 文章下載」，沒給編號；腳本檔名已知＝`rightsize-day0-workers.sh`）。
 - **HA 部署的影響**：原文沒有說明（9.1.1 另有 Small HA VCFMS 部署選項），HA 環境套用前要另外確認。
 - 是否可回復（rollback）：原文未提。
 - 縮減後在巢狀 vSAN 上是否仍穩定（我們的環境對 etcd fsync 特別敏感）。

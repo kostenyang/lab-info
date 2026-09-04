@@ -12,7 +12,7 @@
 | # | 9.1.1 新增 | 對本 lab 的意義 | 相關文件 |
 |---|---|---|---|
 | 6 | **離線 depot 支援 HTTP 與自訂 URL 路徑** | ⭐ **最有價值**。rtolab 的離線 depot 是 nginx **HTTP :8888**（`172.16.10.50`），9.1.0 的 installer UI 只吃 HTTPS；這條讓它可以直接被指定 | [runbooks/depot-server.md](../runbooks/depot-server.md)、[debug-vcf9.1 §8](https://github.com/kostenyang/debug-vcf9.1) |
-| 4 | **VCFMS footprint 縮減**（1 CP + 3 worker → 1 CP + **2** worker） | 巢狀環境省下約一台 worker 的量（我們的 worker 現況是 12 vCPU / 24 GB）。**新裝的 9.1.1 自動套用；既有環境升級上去不會**，要手動跑腳本 | [runbooks/vcfms-footprint-reduction.md](../runbooks/vcfms-footprint-reduction.md) |
+| 4 | **VCFMS footprint 縮減**（1 CP + 3 worker → 1 CP + **2** worker） | 巢狀環境省下一台 worker。腳本＝`rightsize-day0-workers.sh`（非同步、要打 yes 確認、15–60 分鐘收斂）。**新裝的 9.1.1 自動套用；既有環境升級上去不會** | [runbooks/vcfms-footprint-reduction.md](../runbooks/vcfms-footprint-reduction.md) |
 | 5 | **Small HA VCFMS 部署選項** | 想要 HA 又不想超出最小資源量的巢狀 lab 適用 |  |
 | 7 / 9 | **非 vSAN ESA HCL 磁碟的內建選項**（installer UI 與 host commissioning 都支援） | 取代我們手動 silence `nvmeonhcl` 健康檢查的做法 | debug-vcf521 §03（HCL 擋 remediate） |
 | 8 | **單台 ESX 部署** | installer UI 會尊重覆寫設定，lab 可單主機部署 |  |
