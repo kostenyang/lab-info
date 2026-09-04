@@ -63,6 +63,8 @@ Single source of truth for **two separate VCF lab environments**, each in its ow
 | [runbooks/vks.md](runbooks/vks.md) | VKS / Supervisor setup & operations |
 | [runbooks/depot-server.md](runbooks/depot-server.md) | Offline VCF depot download/serve |
 | [reference/vcf-api-old-vs-new.md](reference/vcf-api-old-vs-new.md) | VCF API old-vs-new comparison |
+| **[reference/vcf-9.1.1-whats-new.md](reference/vcf-9.1.1-whats-new.md)** | **VCF 9.1.1 新增功能重點 + 對本 lab 的意義**（離線 depot 支援 HTTP／自訂 URL、VCFMS 縮編、HCL 磁碟內建選項…） |
+| [runbooks/vcfms-footprint-reduction.md](runbooks/vcfms-footprint-reduction.md) | 升 9.1.1 後手動採用縮減版 VCFMS footprint（1 CP + 3 worker → 1 CP + 2 worker） |
 
 > Most runbooks were written against **rtolab** (IPs/paths are rtolab's) — adapt
 > addresses when applying to home lab.
