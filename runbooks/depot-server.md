@@ -86,7 +86,7 @@ License, Salt, Telemetry, VSP, …).
 SDDC Manager gets frequent async patches (`0100`→`0200`→`0300`); the rest top out at `0100`
 (2026-06-05). GA (`…2537xxxx`, 2026-05-12) + all intermediate patch builds remain alongside
 (download is cumulative). This is the **latest available** for the token's catalog — `9.1.0.1 /
-9.1.0.2 / 9.1.1.0` return `0 elements`, and there is no INSTALL bundle newer than 9.1.0.0 GA.
+9.1.0.2 / 9.1.1.0` return `0 elements`（**此結論已於 2026-09-04 失效，見文末 9.1.1 專節**）, and there is no INSTALL bundle newer than 9.1.0.0 GA.
 Depot ≈ 154 GB used / 21 GB free.
 
 > **Catalog cache gotcha**: the tool caches the product-version catalog; a stale cache can hide a
@@ -153,7 +153,7 @@ bash /root/my-vcfdepot.sh -t /root/vcf-token.txt --type UPGRADE --filename-like 
 
 ### 踩雷
 
-- **包裝腳本 `my-vcfdepot.sh` 成功也會回 `RC=1`** —— 兩段都印了 `Done. Depot roo`t 且 sha256 全 OK，
+- **包裝腳本 `my-vcfdepot.sh` 成功也會回 `RC=1`** —— 兩段都印了 `Done. Depot root` 且 sha256 全 OK，
   退出碼仍是 1。**不要用退出碼判斷成敗**，改看：
   ```bash
   grep -c 'sha256 matches catalog' /root/dl911.out     # 應等於檔案數
