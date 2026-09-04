@@ -17,7 +17,13 @@ VCF 9.1.1 把 Day-0 服務逐一右調（right-size），結果是：
 | | VCF 9.1.0 | VCF 9.1.1（縮減後） |
 |---|---|---|
 | Simple 部署 | 1 CP + **3** worker | 1 CP + **2** worker |
-| Worker 規格 | 較大（為 Day-N 預留） | **12 vCPU / 24 GB** |
+| 省下的資源 | — | 約 **12 vCPU / 24 GB**（等於一台 worker） |
+
+> ⚠️ **原文措辭有歧義，別照抄**：關於 worker 尺寸，可以讀成「每台 worker **縮到** 12 vCPU / 24 GB」，
+> 也可以讀成「**減掉** 12 vCPU / 24 GB（＝少一台 worker）」。
+> **我們自己量過的現況支持後者**：rtolab 的 VSP 是 CP `4 vCPU / 10 GB` ＋ **3 台 worker 各 `12 vCPU / 24 GB`**，
+> worker 本來就已經是 12/24，所以對我們而言真正的變化是**少一台 worker**。
+> 套用前先自己量一次（`Get-VM 'kosten-vcf91-vspp*' | ft Name,NumCpu,MemoryGB`），不要憑文章下判斷。
 
 **關鍵：升級到 9.1.1 之後不會自動縮**。既有環境維持原尺寸，除非你手動跑右調腳本。
 
@@ -29,9 +35,10 @@ VCF 9.1.1 把 Day-0 服務逐一右調（right-size），結果是：
 ## 前提條件
 
 1. **已經升級到 VCF 9.1.1**（沒升就不適用）。
-2. **環境沒有部署 Day-N 服務** —— 原文明講這個右調只適用於沒有 Day-N 服務的環境。
-   有裝 Day-N 服務的環境不要套。
-3. 取得 Broadcom KB 提供的右調腳本（原文未附 KB 編號與下載連結，**要自己查 KB**）。
+2. **環境沒有部署 Day-N 服務** —— 這個右調是針對 **Day-0 初始部署**做的；
+   裝了 optional Day-N 服務的環境需求會不一樣，不要直接套。
+3. 取得 Broadcom KB 提供的右調腳本。**原文沒有給 KB 編號、也沒有給腳本檔名**（實測兩次擷取都確認缺這兩項），
+   要自己去 Broadcom KB 查。
 4. 手上要有 control plane 節點的 SSH 憑證（`vmware-system-user`）。
    > 密碼來源：部署當時 VCF Installer 的 **REVIEW PASSWORDS**（值是遮罩的，**要先點開 `eye` 圖示**才看得到），
    > 或事後從既有的憑證保管處取得。**不要把密碼寫進任何 repo。**
@@ -60,7 +67,7 @@ scp <right-sizing-script> vmware-system-user@<control-plane-node>:/tmp/
 
 ```bash
 ssh vmware-system-user@<control-plane-node>
-sudo /tmp/<right-sizing-script>
+sudo /tmp/<right-sizing-script>      # 用 sudo 提權到 root 執行
 ```
 
 ### 4. 盯 rollout（約 10–15 分鐘）
@@ -84,6 +91,8 @@ kubectl get pd vmsp-platform -n vmsp-platform -w
 
 ## 尚待驗證
 
-- 實際的 KB 編號與腳本名稱。
+- 實際的 KB 編號與腳本名稱（原文皆未提供）。
+- **HA 部署的影響**：原文沒有說明（9.1.1 另有 Small HA VCFMS 部署選項），HA 環境套用前要另外確認。
+- 是否可回復（rollback）：原文未提。
 - 縮減後在巢狀 vSAN 上是否仍穩定（我們的環境對 etcd fsync 特別敏感）。
 - 若環境已裝過 Day-N 服務再移除，是否就能套用。
