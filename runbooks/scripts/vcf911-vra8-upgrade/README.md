@@ -13,3 +13,5 @@
 | `check-kb.sh` | 驗證 KB 425489 腳本結果（log + `ssl_trust_certificate_state` 的 cert_ext 列） |
 
 完整過程與坑見 `../../vcf911-vra8-import-upgrade-worklog.md`；交付文件由 `../docx-build/gen-vcf911-upgrade-doc.js`（Word）與 `gen-vcf911-upgrade-ppt.js`（PPT）產生。
+
+方案 B（fleet 帳面手動補完，lab-only）獨立文件：`../../vcf911-vcfa-fleet-record-manual-fix-optionB.md`；Word 由 `../docx-build/gen-vcf911-optionB-doc.js` 產生（截圖 915–920）。

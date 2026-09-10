@@ -909,3 +909,17 @@ UI 坑：ADD ACCOUNT 在 **iframe** 內，`querySelectorAll`/`elementFromPoint()
   ④ fleet `POST /v1/sddc-lcms/<id>/refresh` → sddc-lcm DB 自動變 9.1.1、fleet status 變 Running（version 不會同步）
   ⑤ fleet DB `update component set version=…` → UI/API 對齊
   已知限制：fleet 對 VCFA **無 service account／憑證**（`credentials available=false`），fleet→VCFA 的後續整合動作可能受限；官方立場仍是 support case（KB 441333）。
+
+## ⑦ 升級後補測：藍圖 `formatVersion: 2` + `metadata:`（2026-09-10）
+
+問題：formatVersion 2 是否讓 VCF Automation 9.1.1 真正「支援」頂層 `metadata:`？
+
+- 建立 `METADATA-TEST-911-20260910`（`90cc50eb-…`，content = E:\8\deploy\bp-metadata-test\attrtest.yaml）→ 201、`valid: true`；發版 v1 RELEASED；實際部署 `meta-test-911-01` CREATE_SUCCESSFUL（VM 10.0.0.212）。
+- `/blueprint/api/blueprint-validation` 實測規則：
+  - `formatVersion: 1` + metadata → `Blueprint format version should be at least 2 to support metadata`
+  - formatVersion 只接受 0–2；`metadata` 必須是 object（字串/list 都擋）；任意鍵可放（`foo: bar`、`${input.x}` 都 valid）
+  - 唯一被解讀的鍵是 `metadata.deploymentSettings`（object，值必須 boolean；訊息 `Deployment setting value should be of type boolean`）
+- 反編譯 tango-blueprint-service（runtime 叢集 10.0.0.242，`/opt/vmware/snapshot/libblueprint-webapp.jar`）：`BlueprintUtils` 只有 `BLUEPRINT_FORMAT_VERSION_0/1/2`；formatVersion 2 解鎖三樣：`outputs`、`variables`、`metadata`；`BlueprintMetadata` 類別只有 `deploymentSettings` 一個欄位，其餘鍵原樣留在 content 字串。
+- API 讀回：blueprint/version/blueprint-request/deployment 物件都沒有 metadata 欄位；deployment resource 只看得到 `resources.*.properties` 自訂 key 與 tags（跟 8.18 相同）。
+- 結論：**與 8.18 行為一致**——formatVersion 2 + metadata 在 8.18 就 valid，9.1.1 沒有新增任何讀出/篩選 metadata 的 API。要讓平台「看得到」的屬性仍應放 resource properties / tags。
+- 注意：`POST /blueprint/api/blueprints` body 若用 argv 帶中文 YAML 會變 `Invalid UTF-8 start byte`，改用檔案 `--data-binary @file`。
