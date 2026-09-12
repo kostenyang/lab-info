@@ -111,6 +111,30 @@ Power state varies (instances are brought up/down as needed).
 
 ---
 
+## Classic Aria Suite — vRLCM-managed vRA 8.x
+
+> A **standalone, classic vRealize/Aria stack** managed by Aria Suite Lifecycle
+> (vRLCM). This is **separate** from the VCF-integrated *VCF Automation* above
+> (`vcfa.home.lab` .165 / the `vcf-m02-auto-*` platform) — different product,
+> different lifecycle. Don't confuse the two.
+
+| Component | FQDN | IP | Version / notes |
+|-----------|------|----|-----------------|
+| Aria Suite Lifecycle (vRLCM) | vrlcm.home.lab | 10.0.0.201 | admin@local |
+| Workspace ONE Access (vIDM) | vidm.home.lab | 10.0.0.202 | configadmin |
+| Aria Automation (vRA 8) | vra.home.lab | 10.0.0.203 | **8.18.1.36791**; UI: configadmin; **SSH: root** |
+
+**Credentials** — these appliances use the **single-bang** `VMware1!` (NOT the
+`VMware1!VMware1!` lab default). vRA appliance SSH is `root / VMware1!`.
+*Caveat (2026-07-01): vRLCM `admin@local` login via `POST /lcm/authzn/api/login`
+returned HTTP 401 with `VMware1!` — LCM API password unconfirmed; UI(443) is up.*
+
+**Health / repair** — if `https://vra.home.lab` (443) stops responding while the
+appliance still pings, the prelude services are down. See
+[`runbooks/debug-vra8.md`](../runbooks/debug-vra8.md).
+
+---
+
 ## Adjacent lab services (not VCF core)
 
 | Service | FQDN | IP |
