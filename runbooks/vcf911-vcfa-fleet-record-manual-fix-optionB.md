@@ -137,3 +137,95 @@ kubectl -n vcf-fleet-lcm exec vcf-fleet-lcm-db-0 -c postgres -- psql -U postgres
 1. 升級本體已完成且已切換，先用 §0 四項證據確認，**不要**因 fleet 顯示 Upgrade failed 就回滾。
 2. 正式路徑＝方案 A：開 support case（附四項證據 + 任務 ID），由原廠修正 fleet 紀錄。
 3. 方案 B 只在實驗室驗證過「可行」，未經原廠認可，且會留下 fleet 無 VCFA 憑證的缺口。
+
+---
+
+## 7. 第二次實測（2026-09-17）：與首次的差異
+
+同一套環境重跑一次 vRA 8.18.1 → VCFA 9.1.1 升級，又落到同樣的「假失敗」，再次套用本文。
+component_id `38eb20b2-85f2-3b51-a6b1-5115cc7f671f`、sddcLcmId `ec07a1b0-0468-4cc3-b4e7-6825206918ee` 與首次完全相同，步驟照做可用，但有五點要改：
+
+### 7.1 失敗點不同（本文 §0 要放寬）
+
+首次卡在 ComponentVersion `timeout: 2h`。這次 `spec.timeout` 已先改成 12h，於是換成：
+
+| 嘗試 | 階段 | 錯誤 |
+|---|---|---|
+| 1 | `vmsp_upgrade_vcfa` | `ComponentDeploymentFailed [VCFMS-UPGRADE-COMPONENT-031]` — 底層實體主機 CPU 滿載（77–85 / 80 GHz），`encryption-manager`／`vcfa-service-manager` 連續 `leader election lost`（lease renew `timeout=5s` 逾時），`abx-service-app` 拉映像檔 `tls: bad record MAC` |
+| 2（retry）| `vmsp_upgrade_vcfa` | `Platform Health Check Error [VCFMS-HEALTH-002]`：`platform-flux-helmreleases-core: 1 of 51 resources are not ok` — `metrics-server`、`vmsp-operator` 停在 `InProgress - Fulfilling prerequisites` |
+
+第二次已經**不是元件部署失敗**（`pd vcfa-bundle` 早已 Successful），純粹是收尾的平台健康檢查沒等到 helmrelease 收斂。
+⇒ §0 的判斷準則應改成：**只要 `pd vcfa-bundle = Successful` + 62 pods Running + FQDN 回 9.1.1，不論任務停在哪一階段，都適用本文。**
+
+### 7.2 runtime 節點的 kubectl 拿法變了
+
+新 runtime 節點 `vcf-m02-auto-platform-8sz2k`（10.0.0.242）的 `/etc/kubernetes/admin.conf` 是 `-rw------- root root`，`vmware-system-user` 讀不到，`sudo` 又沒有 tty。解法：
+
+```bash
+echo 'VMware1!VMware1!' | sudo -S -p '' kubectl --kubeconfig=/etc/kubernetes/admin.conf get pd -A
+```
+
+`sudo -S` 從 stdin 讀密碼，不需要 tty（不必再寫 pty wrapper）。包成小工具：
+
+```bash
+# /tmp/k.sh "<kubectl 參數>" [節點IP，預設 10.0.0.242]
+bash /e/9.1/tools/vsp.sh "echo 'VMware1!VMware1!' | sudo -S -p '' kubectl --kubeconfig=/etc/kubernetes/admin.conf $1 2>&1" "${2:-10.0.0.242}"
+```
+
+### 7.3 mgmt control-plane 不固定，且 10.0.0.227 不是節點
+
+本文 §3 寫 10.0.0.227，這次真正的 control-plane 是 **10.0.0.226**（`vcf-m02-vsp01-5hk5t`）。
+四個節點是 .226 / .228 / .230 / .231；**10.0.0.227 是 kube-apiserver VIP**，`admin.conf` 的 server 指向它。VIP 短暫飄移時會出現 `dial tcp 10.0.0.227:6443: connect: no route to host`，重試即可，不是節點掛掉。
+
+`vsp.sh` 的自動探測會失效（它用 `stat /etc/kubernetes/admin.conf` 判斷，而 `stat` 只要目錄可穿越就會成功，讀不到檔案照樣回大小）。找 control-plane 請直接對每個 IP 跑 `kubectl get nodes`。
+
+### 7.4 ⭐ 步驟 ⑤（直接改 fleet DB）這次不需要
+
+首次的結論是「fleet DB 的 version 不會同步，只能手動 update」。這次做完 ④ Refresh 之後：
+
+```
+sddc-lcm DB : VCFA | 9.1.1.0.25714559
+fleet DB    : VCFA | Running | 9.1.1.0.25714559   ← 自己就對了
+```
+
+差別推測是**步驟 ③（mgmt 叢集的 comp vcfa 也改版）先做了**，Refresh 的 `persist_sddc_lcm_components_ref` 才有正確來源可寫回。
+⇒ 建議順序固定為 ②→③→④，**做完 ④ 先查 fleet DB，是 9.1.1 就跳過 ⑤**。
+
+### 7.5 Refresh 任務本身會 FAILED（可接受）
+
+這次的 `REFRESH_SDDC_LCM_WORKFLOW` 比首次多了 Ops 註冊階段，最後整體 FAILED：
+
+```
+update_fleet_depot_spec_ref                        SUCCEEDED
+check_if_propagate_fds_data_to_vcfa_task_needed_ref SUCCEEDED
+prepare_refresh_input_ref                          SUCCEEDED
+persist_sddc_lcm_components_ref                    SUCCEEDED   ← 版本同步在這裡完成
+prepare_components_for_ops_registration_ref        SUCCEEDED
+register_components_in_ops_switch_ref              SUCCEEDED
+register_single_component_in_ops_ref__1..3         SUCCEEDED
+register_single_component_in_ops_ref__4            FAILED ×4 → register_components_loop_ref CANCELED
+```
+
+失敗訊息：
+
+```
+An unexpected error occurred in step register_single_component_in_ops_ref__4.
+Reference Code: EDD37844. Detail: API response for operation 'create service account' is not a successful one.
+```
+
+這正是 §4 第一項「fleet 對 VCFA 沒有 service account／憑證」的具體現形。
+**版本同步在它之前就完成了，所以任務 FAILED 不影響本文的目的**；但也再次證實這個缺口補不掉。
+
+### 7.6 其他
+
+- 來源資料碟這次是 `disk-1000-14` → `vra9_1-000001.vmdk`（144 GB，首次是 `-000002`）；guest 內狀態相同（`/vra-db` ro、`lsof` 空、fstab 無條目），①照做即可。回退用的 `vra9_1.vmdk`(177 GB) 與 `vra9_1-000001.vmdk`(3.6 GB) 都還在 datastore。
+- mgmt 側 `comp vcfa` 的 size 是 `medium`，runtime 側是 `small`，不影響。
+- **Ops UI 的 `LOG IN` 按鈕吃不到 `el.click()`**，必須發真滑鼠事件（`Input.dispatchMouseEvent`），跟列上的 `UPGRADE` 按鈕同一個坑。底層吃緊時 Ops UI 會整個轉圈登不進去，但 `POST /suite-api/api/auth/token/acquire` 仍回 200 —— 用它可以區分「帳號被鎖」與「單純太慢」。
+- `GET /v1/release-versions/target-versions` 偶發 504（fleet-lcm 首頁就是卡在這支），重試即可。
+
+### 7.7 這次順帶發現：升級會掉「cloud account 已移除」的部署
+
+升級前 4 個部署，升級後剩 3 個，掉的是 `app-on-vc8`（project `vc8-lab`）—— 唯一一個所屬 cloud account 已被移除的部署。它的 VM `lab-vm-01-mcm1246-337877359821` 還在外層 vCenter，但已無任何部署紀錄，成為孤兒。
+
+⇒ 舊 vCenter 退役情境的順序建議：**先升級 vRA，再移除舊 cloud account**；或在移除前先把相關部署 Onboarding 到新 cloud account。
+（本結論目前為相關性 + 唯一差異，尚未做對照實驗驗證因果。）
