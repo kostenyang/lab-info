@@ -126,6 +126,7 @@ Power state varies (instances are brought up/down as needed).
 | TKG AVI | tkgavi / tkgsavi.home.lab | 10.0.0.252 / 10.0.0.253 |
 | Log server | log.home.lab | 10.0.0.123 |
 | Open WebUI | openwebui.home.lab | 10.0.0.64 |
+| **n8n (workflow automation)** | n8n.home.lab (CNAME) → n8n01.home.lab | 10.0.0.81 — `http://n8n.home.lab:5678`, Ubuntu 20.04 + Docker (n8n 2.42.3 + Postgres 16), outer vC host 10.0.0.97 / SSD3 / VM Network; owner `admin@home.lab`; SSH root, cred = depot/ESXi 那組; stack in `/opt/n8n` (added 2026-10-06) |
 | SQL 2019 | sql2019.home.lab | 10.0.0.70 |
 | Dev DNS | devdns.home.lab | 192.168.16.10 |
 | TKG mgmt DNS | tkgmdns.home.lab | 192.168.34.17 |
