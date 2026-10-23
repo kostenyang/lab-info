@@ -44,6 +44,7 @@ Single source of truth for **two separate VCF lab environments**, each in its ow
 
 **Read for home lab work:**
 - [topology/home-lab.md](topology/home-lab.md) — **authoritative**, DNS-verified topology (all IPs/FQDNs for m01/m02/m03)
+- [home-lab/](home-lab/README.md) — 工作筆記 / 各執行個體 PROGRESS / 實測紀錄（`E:\9.1` md 快照 2026-10-23，已遮罩密碼與客戶名，不含截圖）
 - repo's own `README.md`, `SCRIPTS.md`, `layer{1..4}-*/`
 
 > ⚠️ The repo `vcf9.1-lab` describes a **single-instance reference template**; the

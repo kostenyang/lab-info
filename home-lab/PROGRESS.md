@@ -1,0 +1,3 @@
+- F 11:5x ns cust-stg / cust-dev 用 NEW NAMESPACE 精靈建好(override network → Create a VPC、Default Subnet Size 256、zone vz-01),截圖 410–417、420–427;VPC cust-stg_f6l2v / cust-dev_5gvtu,LB IP 192.168.32.7
+  - 🔴 VLAN-backed VPC 不接受手動指定 CIDR 的 Public subnet:無 vlan_connection → 640955;帶 TGW 的 DVC → 要 DISCONNECTED 且 DVC 不在 VPC scope(524129)。節點子網只能由 SubnetSet 依 size 自動切 → 用 size 256 讓它整段 /24 依序拿(預期 33.0/24、34.0/24)。簡報「預建指定 CIDR 子網」那句要改。
+  - 精靈坑:radio id clr-form-control-NN 每次不同,要用文字 "Create a VPC" 點
