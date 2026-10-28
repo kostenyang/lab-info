@@ -36,6 +36,22 @@ Automation and a set of adjacent services (VCD, VCDA, HCX, SRM, Harbor, TKG).
 | AD / DNS | KADDNS.home.lab | 10.0.0.200 | Windows AD; authoritative for `home.lab` + `lab.com` |
 | Outer vCenter | labvc.lab.com | 10.0.0.101 | **vSphere 8.0.3**; hosts all nested ESXi |
 | VCF 9 depot | vcf9depotserver.home.lab | 10.0.0.61 | Offline VCF bundle depot |
+| Outer ESXi host A | — | 10.0.0.95 | Supermicro, 32c / 1 TB — runs all nested ESXi |
+| Host A IPMI / BMC | — | 10.0.0.94 | Supermicro BMC of 10.0.0.95 (HTTPS self-signed; SSH/623/5900 open) |
+| Outer ESXi host B | — | 10.0.0.97 | ASUS, 6c / 128 GB — N4032 Te1/0/11 |
+| Outer ESXi host C | — | 10.0.0.98 | ASUS, 6c / 128 GB — runs outer vCenter 10.0.0.101 |
+| Lab switch (Dell N4032) | — | 10.0.0.254 | OOB mgmt `10.0.0.254/23` gw `10.0.0.1` (web UI + SSH). See below |
+
+### Dell N4032 lab switch (configured 2026-10-28)
+
+- DNOS 6, 24× 10GBase-T (`Te1/0/1–24`). SSH lands in user EXEC `>` → `enable` first.
+- `Te1/0/1–4`: access, VLAN 1 (default).
+- `Te1/0/5–24`: trunk, native VLAN 1, VLANs 1–200 tagged. VLAN 219 / 2049 exist but are
+  **excluded** from trunks — DNOS trunks allow *all* VLANs minus excluded, so any new VLAN
+  > 200 must be excluded manually.
+- Port map seen 2026-10-28 ~20:10: `Te1/0/13` = uplink to home LAN (router 10.0.0.1),
+  `Te1/0/8` = 10.0.0.95 VM traffic, `Te1/0/10` = 10G link, `Te1/0/11` = 10.0.0.97.
+- Fans 3/4 reported **critical** after the 20:00 power cycle — check fan modules.
 
 > Outer vCenter SSO is **not** `vsphere.local` / `VMware1!VMware1!`
 > (that combination returns HTTP 401) — use the real lab credential.
