@@ -55,9 +55,40 @@ Replaces the Dell N4032 (offline since 2026-10-29). Summary row lives in
 | MTU VLAN | Disabled |
 | IGMP Snooping | Enabled (default), report suppression off, no static groups |
 | QoS / storm control / mirroring / loop prevention | Factory default (not touched) |
-| Jumbo frames | No MTU knob — always on. **MTU 9000 not yet verified** (`vmkping -d -s 8972`) |
+| Jumbo frames | No MTU knob — always on. **MTU 9000 verified 2026-10-29** (VDS7 VLAN 3–9, `.95` / `.97` → router gateway, 8972 B + DF 3/3) |
 
-Links up at snapshot time (1000M full): ports 1, 3, 4, 11, 17. Host-to-port mapping not yet recorded.
+Links up at snapshot time (1000M full): ports 1, 3, 4, 11, 17. `.98` was power-cycled during the
+swap (boot 20:18), so port 18 came up afterwards; port 3 → 9 move happened at 21:00.
+
+## Host ↔ port map
+
+Found 2026-10-29 20:28 by comparing per-port packet counters (`PortStatisticsRpm.htm`) against
+vmnic counters over 60 s; port 9 updated after the 21:00 re-cable; VDS uplink assignment
+cross-checked in vCenter at 21:13.
+
+| Port | Mode | Host / NIC | vSphere side |
+|---|---|---|---|
+| 1 | access | upstream link → another switch / home LAN (router `10.0.0.1`) | `.97` vmnic0 and `.98` vmnic2 live on that side (their counters don't match any port here) |
+| 4 | access | `.95` vmnic2 | vSwitch0 — `.95` management (vmk0) |
+| 9 | trunk | `.95` vmnic1 | VDS7 Uplink 2 |
+| 11 | trunk | `.95` vmnic0 | VDS7 Uplink 1 |
+| 17 | trunk | `.97` vmnic2 | VDS7 Uplink 1 |
+| 18 | trunk | `.98` vmnic0 | VDS7 Uplink 1 (outer vCenter, RouterOS lab router trunk) |
+
+## Known gaps
+
+- **1 GbE only** — `.95` / `.97` 10G X540 NICs run at 1000 here.
+- VDS7 portgroups `VLAN31-pf` … `VLAN36-pf` (VLAN 31–36) have **no matching VLAN on this switch**
+  (VLANs 1–30 only; 2 of 32 VLAN slots left). Add them (or drop the PGs) before using them.
+
+## Reading state without the browser
+
+The web UI is plain HTTP and session-bound to the client IP: `POST /logon.cgi`
+(`username`, `password`, `cpassword=`, `logon=Login`), then GET
+`/SystemInfoRpm.htm`, `/PortSettingRpm.htm`, `/PortStatisticsRpm.htm`
+(`pkts`: 4 values per port — txGood, txBad, rxGood, rxBad), `/Vlan8021QRpm.htm`
+(`tagMbrs` / `untagMbrs` bitmasks, bit 0 = port 1) and `/Vlan8021QPvidRpm.htm`.
+From Git Bash set `MSYS_NO_PATHCONV=1`.
 
 ## Rebuild procedure
 

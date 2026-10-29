@@ -36,10 +36,10 @@ Automation and a set of adjacent services (VCD, VCDA, HCX, SRM, Harbor, TKG).
 | AD / DNS | KADDNS.home.lab | 10.0.0.200 | Windows AD; authoritative for `home.lab` + `lab.com` |
 | Outer vCenter | labvc.lab.com | 10.0.0.101 | **vSphere 8.0.3**; hosts all nested ESXi |
 | VCF 9 depot | vcf9depotserver.home.lab | 10.0.0.61 | Offline VCF bundle depot |
-| Outer ESXi host A | — | 10.0.0.95 | Supermicro, 32c / 1 TB — runs all nested ESXi |
+| Outer ESXi host A | — | 10.0.0.95 | Supermicro, 32c / 1 TB — runs all nested ESXi. Switch ports 4 / 11 / 9 (see port map below) |
 | Host A IPMI / BMC | — | 10.0.0.94 | Supermicro BMC of 10.0.0.95 (HTTPS self-signed; SSH/623/5900 open) |
-| Outer ESXi host B | — | 10.0.0.97 | ASUS, 6c / 128 GB — was N4032 Te1/0/11 (N4032 offline) |
-| Outer ESXi host C | — | 10.0.0.98 | ASUS, 6c / 128 GB — runs outer vCenter 10.0.0.101 |
+| Outer ESXi host B | — | 10.0.0.97 | ASUS, 6c / 128 GB — VDS7 on switch port 17; vSwitch0 (mgmt) reaches the lab via the upstream link on port 1 |
+| Outer ESXi host C | — | 10.0.0.98 | ASUS, 6c / 128 GB — runs outer vCenter 10.0.0.101 + lab router; VDS7 on switch port 18 |
 | Lab switch (TP-Link TL-SG1024DE) | — | 10.0.0.254 | Mgmt `10.0.0.254/23` gw `10.0.0.1`, static (DHCP off), web UI only. See below |
 | ~~Lab switch (Dell N4032)~~ | — | ~~10.0.0.254~~ | **Offline since 2026-10-29**; IP reassigned to the TL-SG1024DE |
 
@@ -56,9 +56,27 @@ Full config snapshot + rebuild steps: [`home-lab/switch/tl-sg1024de-config.md`](
   - Ports 1–6: access, VLAN 1 untagged only.
   - Ports 7–24: trunk, VLAN 1 untagged (native) + VLANs 2–30 tagged.
   - Max 32 VLANs on this model — only 2 free slots left.
-- Jumbo frames: no MTU setting in the UI (always on on Easy Smart). MTU 9000 end-to-end
-  **not yet verified** — test with `vmkping -d -s 8972` between hosts.
+- Jumbo frames: no MTU setting in the UI (always on on Easy Smart). **MTU 9000 verified
+  2026-10-29**: temporary vmk on VDS7 VLAN 3–9 on `.95` and `.97` → ping the lab router gateway
+  with 56 B / 1472 B + DF / **8972 B + DF, all 3/3** (trunk + jumbo OK across hosts).
+- **1 GbE only** — the 10G NICs (`.95` / `.97` X540) negotiate 1000 on this switch.
+- ⚠️ VDS7 has portgroups `VLAN31-pf` … `VLAN36-pf` (VLAN 31–36) that this switch does **not**
+  carry (only 1–30 are defined, and only 2 VLAN slots are left) — traffic on those PGs goes nowhere.
 - Reset button (hold ~6 s) → factory default `192.168.0.1`, wipes VLANs.
+
+**Host ↔ switch port map** (2026-10-29 20:28 by per-port counter deltas; port 9 change at 21:00;
+uplink assignment cross-checked against vCenter at 21:13):
+
+| Port | Mode | Host / NIC | vSphere side |
+|---|---|---|---|
+| 1 | access | **upstream link** to another switch / home LAN (router `10.0.0.1`) | `.97` vmnic0 and `.98` vmnic2 are on that side, not on this switch |
+| 4 | access | `.95` vmnic2 | vSwitch0 — `.95` management (vmk0) |
+| 9 | trunk | `.95` vmnic1 | VDS7 **Uplink 2** (moved here from port 3 at 21:00) |
+| 11 | trunk | `.95` vmnic0 | VDS7 **Uplink 1** |
+| 17 | trunk | `.97` vmnic2 | VDS7 Uplink 1 (`.97` mgmt vSwitch0 = vmnic0, via port 1) |
+| 18 | trunk | `.98` vmnic0 | VDS7 Uplink 1 (outer vCenter + RouterOS lab router VLAN trunk) |
+
+`.97` / `.98` have no VDS7 Uplink 2 cabled; vmnic1 on both is link-down.
 
 ### Dell N4032 lab switch (configured 2026-10-28) — OFFLINE since 2026-10-29
 
