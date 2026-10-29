@@ -45,6 +45,8 @@ Automation and a set of adjacent services (VCD, VCDA, HCX, SRM, Harbor, TKG).
 
 ### TP-Link TL-SG1024DE lab switch (configured 2026-10-29) — current
 
+Full config snapshot + rebuild steps: [`home-lab/switch/tl-sg1024de-config.md`](../home-lab/switch/tl-sg1024de-config.md).
+
 - Easy Smart switch, HW 7.0, FW `1.0.0 Build 20230616`, MAC `B8:FB:B3:5E:0F:80`, 24× 1GbE.
   Web UI only (no SSH / CLI). Changes are written to flash on Apply — no separate "Save Config".
 - Mgmt IP `10.0.0.254/23` gw `10.0.0.1`, **DHCP client disabled**. Factory default is
