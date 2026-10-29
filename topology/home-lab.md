@@ -38,11 +38,29 @@ Automation and a set of adjacent services (VCD, VCDA, HCX, SRM, Harbor, TKG).
 | VCF 9 depot | vcf9depotserver.home.lab | 10.0.0.61 | Offline VCF bundle depot |
 | Outer ESXi host A | — | 10.0.0.95 | Supermicro, 32c / 1 TB — runs all nested ESXi |
 | Host A IPMI / BMC | — | 10.0.0.94 | Supermicro BMC of 10.0.0.95 (HTTPS self-signed; SSH/623/5900 open) |
-| Outer ESXi host B | — | 10.0.0.97 | ASUS, 6c / 128 GB — N4032 Te1/0/11 |
+| Outer ESXi host B | — | 10.0.0.97 | ASUS, 6c / 128 GB — was N4032 Te1/0/11 (N4032 offline) |
 | Outer ESXi host C | — | 10.0.0.98 | ASUS, 6c / 128 GB — runs outer vCenter 10.0.0.101 |
-| Lab switch (Dell N4032) | — | 10.0.0.254 | OOB mgmt `10.0.0.254/23` gw `10.0.0.1` (web UI + SSH). See below |
+| Lab switch (TP-Link TL-SG1024DE) | — | 10.0.0.254 | Mgmt `10.0.0.254/23` gw `10.0.0.1`, static (DHCP off), web UI only. See below |
+| ~~Lab switch (Dell N4032)~~ | — | ~~10.0.0.254~~ | **Offline since 2026-10-29**; IP reassigned to the TL-SG1024DE |
 
-### Dell N4032 lab switch (configured 2026-10-28)
+### TP-Link TL-SG1024DE lab switch (configured 2026-10-29) — current
+
+- Easy Smart switch, HW 7.0, FW `1.0.0 Build 20230616`, MAC `B8:FB:B3:5E:0F:80`, 24× 1GbE.
+  Web UI only (no SSH / CLI). Changes are written to flash on Apply — no separate "Save Config".
+- Mgmt IP `10.0.0.254/23` gw `10.0.0.1`, **DHCP client disabled**. Factory default is
+  DHCP-off `192.168.0.1/24`, but after a power cycle on this LAN it picked up DHCP `10.0.0.16`
+  — if the switch "disappears", sweep `10.0.0.0/23` and `arp -an | grep b8:fb:b3:5e:f:80`.
+- 802.1Q VLAN enabled; VLANs 1–30 (names `VLAN2`…`VLAN30`), PVID 1 on all ports.
+  - Ports 1–6: access, VLAN 1 untagged only.
+  - Ports 7–24: trunk, VLAN 1 untagged (native) + VLANs 2–30 tagged.
+  - Max 32 VLANs on this model — only 2 free slots left.
+- Jumbo frames: no MTU setting in the UI (always on on Easy Smart). MTU 9000 end-to-end
+  **not yet verified** — test with `vmkping -d -s 8972` between hosts.
+- Reset button (hold ~6 s) → factory default `192.168.0.1`, wipes VLANs.
+
+### Dell N4032 lab switch (configured 2026-10-28) — OFFLINE since 2026-10-29
+
+Kept for history; replaced by the TL-SG1024DE above (same mgmt IP).
 
 - DNOS 6, 24× 10GBase-T (`Te1/0/1–24`). SSH lands in user EXEC `>` → `enable` first.
 - `Te1/0/1–4`: access, VLAN 1 (default).
