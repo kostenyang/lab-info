@@ -60,8 +60,9 @@ Full config snapshot + rebuild steps: [`home-lab/switch/tl-sg1024de-config.md`](
   2026-10-29**: temporary vmk on VDS7 VLAN 3–9 on `.95` and `.97` → ping the lab router gateway
   with 56 B / 1472 B + DF / **8972 B + DF, all 3/3** (trunk + jumbo OK across hosts).
 - **1 GbE only** — the 10G NICs (`.95` / `.97` X540) negotiate 1000 on this switch.
-- ⚠️ VDS7 has portgroups `VLAN31-pf` … `VLAN36-pf` (VLAN 31–36) that this switch does **not**
-  carry (only 1–30 are defined, and only 2 VLAN slots are left) — traffic on those PGs goes nowhere.
+- VDS7 portgroups `VLAN31-pf` … `VLAN36-pf` (VLAN 31–36, not carried by this switch, unused)
+  were **removed 2026-10-29 21:16** — VDS7 now only uses VLANs that exist on the switch (≤ 30).
+  If VLAN 31+ is ever needed, add it on the switch first (only 2 of 32 VLAN slots left).
 - Reset button (hold ~6 s) → factory default `192.168.0.1`, wipes VLANs.
 
 **Host ↔ switch port map** (2026-10-29 20:28 by per-port counter deltas; port 9 change at 21:00;

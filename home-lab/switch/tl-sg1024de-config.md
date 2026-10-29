@@ -78,8 +78,9 @@ cross-checked in vCenter at 21:13.
 ## Known gaps
 
 - **1 GbE only** — `.95` / `.97` 10G X540 NICs run at 1000 here.
-- VDS7 portgroups `VLAN31-pf` … `VLAN36-pf` (VLAN 31–36) have **no matching VLAN on this switch**
-  (VLANs 1–30 only; 2 of 32 VLAN slots left). Add them (or drop the PGs) before using them.
+- VLANs 1–30 only, 2 of 32 VLAN slots left. The unused VDS7 portgroups `VLAN31-pf` … `VLAN36-pf`
+  (no matching VLAN here) were removed 2026-10-29 21:16 — add the VLAN on the switch first if
+  anything above 30 is ever needed.
 
 ## Reading state without the browser
 
