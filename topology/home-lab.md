@@ -78,6 +78,17 @@ uplink assignment cross-checked against vCenter at 21:13):
 
 `.97` / `.98` have no VDS7 Uplink 2 cabled; vmnic1 on both is link-down.
 
+### Outer host networking aligned to the TL-SG1024DE (2026-10-29 ~21:00, via vCenter)
+
+- VDS7 `Trunk-Nobinding` and `VDS7-DVUplinks-421`: VLAN trunk range **0-4094 → 0-30** (matches the
+  switch; 0 kept so untagged nested traffic still passes). `VLAN31-pf`…`VLAN36-pf` are outside it.
+- VDS7 Health Check **enabled** (VLAN/MTU + teaming, 1 min). Result: all three hosts VLAN 0, 2–30
+  supported, MTU 9000 supported on 2–30 (VLAN 1 = native, reported "not supported" by design).
+- vSwitch0 MTU 1500 → **9000** on `.97` / `.98` (`.95` already 9000).
+- vmk0 MTU 1500 → **9000** on `.97` / `.98`; `.98` vmk0 mask **/24 → /23** (`255.255.254.0`).
+  All three hosts now: vmk0 `/23`, gw `10.0.0.1`, MTU 9000.
+- Open: `.98` VDS7 status **Out of sync** (needs Rectify in vCenter).
+
 ### Dell N4032 lab switch (configured 2026-10-28) — OFFLINE since 2026-10-29
 
 Kept for history; replaced by the TL-SG1024DE above (same mgmt IP).
